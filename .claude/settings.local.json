@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash /Users/jvillada/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.2/skills/brainstorming/scripts/start-server.sh --project-dir /Users/jvillada/Desktop/AI/NeoVita)",
+      "Bash(open:*)",
+      "Bash(PRE_COMMIT_ALLOW_NO_CONFIG=1 git add docs/ .claude/)",
+      "Bash(PRE_COMMIT_ALLOW_NO_CONFIG=1 git commit -m \"docs: design spec and implementation plan for NeoVita KMP MVP\")"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "FuryMCP",
+    "CodeReviewerMCP",
+    "LargeTestingPlatformMCP",
+    "AtlassianMCP",
+    "figma",
+    "SecurityMCP"
+  ]
+}
