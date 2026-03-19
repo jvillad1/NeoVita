@@ -14,7 +14,7 @@ class PlanRepositoryImpl(
 ) : PlanRepository {
 
     override suspend fun getCurrent(): Result<LongevityPlan?> = runCatching {
-        val plan = db.neoVitaDatabaseQueries.getCurrentPlan(
+        val plan = db.neoVitaQueries.getCurrentPlan(
             // userId would come from session — simplified for MVP
             ""
         ).executeAsOneOrNull() ?: return@runCatching null

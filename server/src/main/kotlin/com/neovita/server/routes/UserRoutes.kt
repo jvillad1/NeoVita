@@ -1,6 +1,5 @@
 package com.neovita.server.routes
 
-import com.neovita.server.db.Mappers
 import com.neovita.server.db.repositories.UserRepository
 import com.neovita.server.db.toDto
 import io.ktor.http.*

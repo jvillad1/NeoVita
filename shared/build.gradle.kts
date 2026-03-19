@@ -25,23 +25,20 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.ktor.client.mock)
             implementation(libs.turbine)
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
         }
-        androidMain.dependencies { implementation(libs.sqldelight.android.driver) }
-        iosMain.dependencies { implementation(libs.sqldelight.native.driver) }
+        androidMain.dependencies {
+            implementation(libs.ktor.client.cio)
+            implementation(libs.sqldelight.android.driver)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native.driver)
+        }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)
             implementation(libs.sqldelight.web.driver)
         }
-        val nonJsMain by creating { dependsOn(commonMain.get()) }
-        androidMain.get().dependsOn(nonJsMain)
-        iosMain.get().dependsOn(nonJsMain)
-        val nonJsNativeMain by creating { dependsOn(nonJsMain) }
-        iosMain.get().dependsOn(nonJsNativeMain)
-        val appleMain by getting
-        appleMain.dependencies { implementation(libs.ktor.client.darwin) }
-        val jvmAndAndroidMain by creating { dependsOn(nonJsMain) }
-        androidMain.get().dependsOn(jvmAndAndroidMain)
-        jvmAndAndroidMain.dependencies { implementation(libs.ktor.client.cio) }
     }
 }
 

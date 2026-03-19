@@ -18,7 +18,7 @@ class AssessmentRepositoryImpl(
     ): Result<Assessment> {
         val req = AssessmentRequest(exerciseFrequency, exerciseType, sleepHours, sleepQuality, mainGoal)
         return apiService.saveAssessment(req).map { dto ->
-            db.neoVitaDatabaseQueries.insertAssessment(
+            db.neoVitaQueries.insertAssessment(
                 dto.id, dto.userId, dto.createdAt, dto.exerciseFrequency, dto.exerciseType,
                 dto.sleepHours, dto.sleepQuality.toLong(), dto.mainGoal,
                 """{"overall":${dto.scores.overall},"exercise":${dto.scores.exercise},"sleep":${dto.scores.sleep},"nutrition":${dto.scores.nutrition}}"""
@@ -31,7 +31,7 @@ class AssessmentRepositoryImpl(
         // Try network first, fallback to cache
         val network = apiService.getLatestAssessment().getOrNull()
         if (network != null) return network.toDomain()
-        return db.neoVitaDatabaseQueries.getLatestAssessment(userId).executeAsOneOrNull()?.let { row ->
+        return db.neoVitaQueries.getLatestAssessment(userId).executeAsOneOrNull()?.let { row ->
             // Minimal offline reconstruction without scores recalculation
             null // Return null to trigger UI to show cached state
         }

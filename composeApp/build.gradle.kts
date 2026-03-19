@@ -28,7 +28,7 @@ kotlin {
             implementation(project(":shared"))
         }
         androidMain.dependencies {
-            implementation(libs.koin.android)
+            implementation("io.insert-koin:koin-android:4.0.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

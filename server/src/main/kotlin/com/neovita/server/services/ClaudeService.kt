@@ -62,6 +62,7 @@ class ClaudeService(
 
     private fun buildJsonBody(messages: List<ClaudeMessage>, stream: Boolean): String =
         json.encodeToString(
+            ClaudeRequest.serializer(),
             ClaudeRequest(
                 model = model, system = systemPrompt, messages = messages, stream = stream
             )
