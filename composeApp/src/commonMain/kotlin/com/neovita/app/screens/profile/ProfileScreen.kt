@@ -136,23 +136,25 @@ class ProfileScreen : Screen {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Avatar circle with crimson border
-                Box(
-                    Modifier
-                        .size(100.dp)
-                        .clip(CircleShape)
-                        .border(3.dp, NeoCrimson, CircleShape)
-                        .background(NeoCrimson.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (profileAvatarModel != null) {
-                        AsyncImage(
-                            model = profileAvatarModel,
-                            contentDescription = "Profile picture",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            alignment = Alignment.TopCenter
-                        )
-                    } else {
+                if (profileAvatarModel != null) {
+                    AsyncImage(
+                        model = profileAvatarModel,
+                        contentDescription = "Profile picture",
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .border(3.dp, NeoCrimson, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .border(3.dp, NeoCrimson, CircleShape)
+                            .background(NeoCrimson.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
                         val initial = state.user?.name?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
                         Text(
                             initial,

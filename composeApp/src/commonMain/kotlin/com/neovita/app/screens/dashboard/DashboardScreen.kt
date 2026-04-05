@@ -67,6 +67,66 @@ private val EXP_CARDS = listOf(
     ),
 )
 
+// ── Blue Zones habits card data ───────────────────────────────────────────────
+
+private val HABIT_CARDS = listOf(
+    ExpCard(
+        "Meditación Diaria", "5-20 min · Reduce cortisol",
+        "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&q=80",
+        listOf(Color(0xFF1A0A3C), Color(0xFF3A1060), Color(0xFF5C1A8C)), 4.9f, "Gratis"
+    ),
+    ExpCard(
+        "Dieta Plant-Based", "Zonas Azules · Evidencia científica",
+        "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=300&q=80",
+        listOf(Color(0xFF0A2A0A), Color(0xFF1A5A20), Color(0xFF2A8A30)), 4.8f, "Plan incluido"
+    ),
+    ExpCard(
+        "Caminar 10K Pasos", "Movimiento natural · Cada día",
+        "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=300&q=80",
+        listOf(Color(0xFF0A1A3A), Color(0xFF1A3A7A), Color(0xFF2A5AAA)), 4.7f, "Sin costo"
+    ),
+    ExpCard(
+        "Sueño 8 Horas", "Ciclos REM · Recuperación celular",
+        "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=300&q=80",
+        listOf(Color(0xFF1A1A3C), Color(0xFF2A2A6C), Color(0xFF3A3A9C)), 4.9f, "Guía incluida"
+    ),
+    ExpCard(
+        "Vínculos Sociales", "Tribu · Propósito compartido",
+        "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&q=80",
+        listOf(Color(0xFF3A0A1A), Color(0xFF6A1A2A), Color(0xFF8B1042)), 4.8f, "Comunidad"
+    ),
+)
+
+// ── Advanced longevity practices card data ────────────────────────────────────
+
+private val PRACTICE_CARDS = listOf(
+    ExpCard(
+        "Terapia de Frío", "Wim Hof · Inmunidad y energía",
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80",
+        listOf(Color(0xFF0A2A3A), Color(0xFF0A4A6A), Color(0xFF0A6A9A)), 4.8f, "Técnica libre"
+    ),
+    ExpCard(
+        "Ayuno 16/8", "Autofagia · Longevidad celular",
+        "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=300&q=80",
+        listOf(Color(0xFF2A1A0A), Color(0xFF5A3A0A), Color(0xFF8A5A0A)), 4.7f, "Plan gratis"
+    ),
+    ExpCard(
+        "Sauna Infrarrojo", "Detox · Cardio pasivo · Piel",
+        "https://images.unsplash.com/photo-1545167622-3a6ac756afa4?w=300&q=80",
+        listOf(Color(0xFF3A0A0A), Color(0xFF6A1A0A), Color(0xFF8B1042)), 4.9f, "Desde \$15 USD"
+    ),
+    ExpCard(
+        "Respiración 4-7-8", "Sistema nervioso · Sueño profundo",
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&q=80",
+        listOf(Color(0xFF0A1A2A), Color(0xFF0A3A5A), Color(0xFF0A5A8A)), 4.8f, "Técnica libre"
+    ),
+    ExpCard(
+        "Entrenamiento Funcional", "Fuerza · Movilidad · Equilibrio",
+        "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300&q=80",
+        listOf(Color(0xFF1A1A1A), Color(0xFF3A3A3A), Color(0xFF5A2A2A)), 4.7f, "Desde \$10 USD"
+    ),
+)
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 class DashboardScreen : Screen {
@@ -127,39 +187,53 @@ class DashboardScreen : Screen {
                         visible = show,
                         enter = fadeIn(tween(450, delayMillis = 200)) + slideInVertically(tween(450, delayMillis = 200)) { it / 3 }
                     ) {
-                        Column {
-                            // Section header
-                            Row(
-                                Modifier.fillMaxWidth()
-                                    .padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "Experiencias Recomendadas",
-                                    color = NeoTextPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
-                                )
-                                Text(
-                                    "Ver todo",
-                                    color = NeoCrimson,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp
-                                )
-                            }
+                        CardSection("Experiencias Recomendadas", EXP_CARDS)
+                    }
+                }
 
-                            // Horizontal cards
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 22.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(EXP_CARDS) { card -> ExpCardItem(card) }
-                            }
-                        }
+                // ── Blue Zones habits section ─────────────────────────────────
+                item {
+                    AnimatedVisibility(
+                        visible = show,
+                        enter = fadeIn(tween(450, delayMillis = 300)) + slideInVertically(tween(450, delayMillis = 300)) { it / 3 }
+                    ) {
+                        CardSection("Hábitos de Zonas Azules", HABIT_CARDS)
+                    }
+                }
+
+                // ── Advanced practices section ────────────────────────────────
+                item {
+                    AnimatedVisibility(
+                        visible = show,
+                        enter = fadeIn(tween(450, delayMillis = 400)) + slideInVertically(tween(450, delayMillis = 400)) { it / 3 }
+                    ) {
+                        CardSection("Prácticas de Longevidad", PRACTICE_CARDS)
                     }
                 }
             }
+        }
+    }
+}
+
+// ── Reusable section with header + horizontal card row ────────────────────────
+
+@Composable
+private fun CardSection(title: String, cards: List<ExpCard>) {
+    Column {
+        Row(
+            Modifier.fillMaxWidth()
+                .padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(title, color = NeoTextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Ver todo", color = NeoCrimson, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+        }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 22.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(cards) { card -> ExpCardItem(card) }
         }
     }
 }
