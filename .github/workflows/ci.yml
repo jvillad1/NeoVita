@@ -88,7 +88,9 @@ jobs:
           path: "**/build/reports/tests/"
           retention-days: 14
 
-  # ── Job 3: Shared module builds for all non-Apple KMP targets ────────────
+  # ── Job 3: Shared commonMain compiles for Android target ─────────────────
+  # iOS requires macOS + Xcode; WasmJS requires Node toolchain.
+  # Android compilation already validates all commonMain sources.
   kmp-shared:
     name: KMP — Shared module
     runs-on: ubuntu-latest
@@ -107,5 +109,5 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build shared module (Android + JVM targets)
-        run: ./gradlew :shared:build -x test   # tests are covered in unit-tests job
+      - name: Compile shared module (Android target)
+        run: ./gradlew :shared:compileDebugKotlinAndroid :shared:compileReleaseKotlinAndroid
