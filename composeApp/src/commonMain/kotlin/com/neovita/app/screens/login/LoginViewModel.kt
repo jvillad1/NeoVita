@@ -1,7 +1,8 @@
 package com.neovita.app.screens.login
 
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.neovita.app.auth.GoogleSignInClient
 import com.neovita.shared.network.ApiService
 import com.neovita.shared.network.dto.AuthResponse
@@ -20,13 +21,14 @@ data class LoginState(
 class LoginViewModel(
     private val apiService: ApiService,
     private val googleSignInClient: GoogleSignInClient
-) : ScreenModel {
+) {
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(LoginState())
     val state: StateFlow<LoginState> = _state.asStateFlow()
 
     fun signInWithGoogle() {
         _state.update { it.copy(isLoading = true, error = null) }
-        screenModelScope.launch {
+        scope.launch {
             val result = googleSignInClient.signIn()
             if (result.idToken == null) {
                 _state.update { it.copy(isLoading = false, error = result.error ?: "Error al iniciar sesión") }

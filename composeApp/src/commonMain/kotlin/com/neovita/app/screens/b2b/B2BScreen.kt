@@ -14,8 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
-import com.neovita.app.ui.components.ErrorBanner
 import com.neovita.app.ui.theme.*
 
 data class TeamMember(val name: String, val email: String, val score: Int)

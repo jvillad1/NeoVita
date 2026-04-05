@@ -1,7 +1,8 @@
 package com.neovita.app.screens.assessment
 
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.neovita.shared.domain.repository.AssessmentRepository
 import com.neovita.shared.network.dto.AssessmentResponse
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +40,8 @@ data class AssessmentState(
     val completed: AssessmentResponse? = null
 )
 
-class AssessmentViewModel(private val assessmentRepo: AssessmentRepository) : ScreenModel {
+class AssessmentViewModel(private val assessmentRepo: AssessmentRepository) {
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(AssessmentState())
     val state = _state.asStateFlow()
 
@@ -55,7 +57,7 @@ class AssessmentViewModel(private val assessmentRepo: AssessmentRepository) : Sc
 
     private fun submitAssessment(answers: Map<String, String>) {
         _state.update { it.copy(isLoading = true) }
-        screenModelScope.launch {
+        scope.launch {
             assessmentRepo.saveAssessment(
                 exerciseFrequency = answers["exercise_frequency"] ?: "",
                 exerciseType = answers["exercise_type"] ?: "",

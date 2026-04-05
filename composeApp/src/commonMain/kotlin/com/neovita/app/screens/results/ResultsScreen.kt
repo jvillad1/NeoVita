@@ -12,17 +12,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
+import org.koin.compose.koinInject
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.neovita.app.screens.dashboard.DashboardScreen
+import com.neovita.app.screens.main.MainScreen
 import com.neovita.app.ui.components.NeoProgressBar
 import com.neovita.app.ui.components.ScoreRing
 import com.neovita.app.ui.theme.*
 
 class ResultsScreen : Screen {
     @Composable override fun Content() {
-        val vm = koinScreenModel<ResultsViewModel>()
+        val vm: ResultsViewModel = koinInject()
         val state by vm.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
@@ -45,8 +45,9 @@ class ResultsScreen : Screen {
 
             if (state.isLoading) {
                 CircularProgressIndicator(color = NeoTeal700)
-            } else if (state.scores != null) {
+            } else {
                 val scores = state.scores
+                if (scores != null) {
                 ScoreRing(score = scores.overall, size = 120.dp, label = "General")
                 Spacer(Modifier.height(32.dp))
 
@@ -65,13 +66,14 @@ class ResultsScreen : Screen {
                 Spacer(Modifier.height(32.dp))
 
                 Button(
-                    onClick = { navigator.replace(DashboardScreen()) },
+                    onClick = { navigator.replaceAll(MainScreen()) },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = NeoTeal700)
                 ) {
                     Text("Ver mi Plan →", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
-            }
+                } // end if scores != null
+            } // end else
         }
     }
 }

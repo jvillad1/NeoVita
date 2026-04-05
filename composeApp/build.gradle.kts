@@ -20,7 +20,6 @@ kotlin {
             implementation(compose.components.resources)
             implementation(libs.voyager.navigator)
             implementation(libs.voyager.tab.navigator)
-            implementation(libs.voyager.koin)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
@@ -29,6 +28,9 @@ kotlin {
         }
         androidMain.dependencies {
             implementation("io.insert-koin:koin-android:4.0.0")
+            implementation("androidx.activity:activity-compose:1.9.3")
+            implementation(libs.sqldelight.android.driver)
+            implementation(libs.coil.network.okhttp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

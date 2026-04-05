@@ -1,7 +1,8 @@
 package com.neovita.app.screens.onboarding
 
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.neovita.shared.domain.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +15,8 @@ data class OnboardingState(
     val done: Boolean = false
 )
 
-class OnboardingViewModel(private val userRepo: UserRepository) : ScreenModel {
+class OnboardingViewModel(private val userRepo: UserRepository) {
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(OnboardingState())
     val state = _state.asStateFlow()
 
@@ -28,7 +30,7 @@ class OnboardingViewModel(private val userRepo: UserRepository) : ScreenModel {
             return
         }
         _state.update { it.copy(isLoading = true, error = null) }
-        screenModelScope.launch {
+        scope.launch {
             userRepo.updateMe(name = _state.value.name, age = age)
                 .onSuccess { _state.update { it.copy(isLoading = false, done = true) } }
                 .onFailure { _state.update { it.copy(isLoading = false, error = "Error al guardar") } }

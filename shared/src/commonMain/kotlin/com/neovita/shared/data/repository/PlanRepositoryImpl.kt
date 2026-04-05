@@ -31,6 +31,7 @@ class PlanRepositoryImpl(
                 nutrition = json["nutrition"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
                 sleep = json["sleep"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
                 exercise = json["exercise"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
+                mentalHealth = json["mental_health"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
                 scores = PillarScores(0, 0, 0, 0)
             )
         }.getOrNull()

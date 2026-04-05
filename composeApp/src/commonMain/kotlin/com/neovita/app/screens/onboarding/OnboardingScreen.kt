@@ -11,7 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
+import org.koin.compose.koinInject
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.neovita.app.screens.assessment.AssessmentScreen
@@ -20,7 +20,7 @@ import com.neovita.app.ui.theme.*
 
 class OnboardingScreen : Screen {
     @Composable override fun Content() {
-        val vm = koinScreenModel<OnboardingViewModel>()
+        val vm: OnboardingViewModel = koinInject()
         val state by vm.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
@@ -52,7 +52,7 @@ class OnboardingScreen : Screen {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true
             )
-            state.error?.let { ErrorBanner(it, modifier = Modifier.padding(top = 8.dp)) }
+            if (state.error != null) ErrorBanner(state.error!!, modifier = Modifier.padding(top = 8.dp))
             Spacer(Modifier.height(32.dp))
             Button(
                 onClick = vm::save, modifier = Modifier.fillMaxWidth().height(52.dp),

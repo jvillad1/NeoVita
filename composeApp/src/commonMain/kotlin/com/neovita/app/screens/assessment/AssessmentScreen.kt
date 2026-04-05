@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.koinScreenModel
+import org.koin.compose.koinInject
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.neovita.app.screens.results.ResultsScreen
@@ -20,7 +20,7 @@ import com.neovita.app.ui.theme.*
 
 class AssessmentScreen : Screen {
     @Composable override fun Content() {
-        val vm = koinScreenModel<AssessmentViewModel>()
+        val vm: AssessmentViewModel = koinInject()
         val state by vm.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
@@ -99,7 +99,7 @@ class AssessmentScreen : Screen {
                     }
                 }
 
-                state.error?.let { ErrorBanner(it, modifier = Modifier.padding(top = 16.dp)) }
+                if (state.error != null) ErrorBanner(state.error!!, modifier = Modifier.padding(top = 16.dp))
             }
         }
     }

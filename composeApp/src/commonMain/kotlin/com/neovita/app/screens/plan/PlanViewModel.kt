@@ -1,7 +1,8 @@
 package com.neovita.app.screens.plan
 
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.neovita.shared.domain.model.LongevityPlan
 import com.neovita.shared.domain.repository.PlanRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,14 +19,15 @@ data class PlanState(
     val error: String? = null
 )
 
-class PlanViewModel(private val planRepo: PlanRepository) : ScreenModel {
+class PlanViewModel(private val planRepo: PlanRepository) {
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(PlanState())
     val state = _state.asStateFlow()
 
     init { load() }
 
     private fun load() {
-        screenModelScope.launch {
+        scope.launch {
             _state.update { it.copy(isLoading = true) }
             planRepo.getCurrent()
                 .onSuccess { plan -> _state.update { it.copy(plan = plan, isLoading = false) } }
@@ -35,7 +37,7 @@ class PlanViewModel(private val planRepo: PlanRepository) : ScreenModel {
 
     fun generatePlan() {
         _state.update { it.copy(isGenerating = true, streamBuffer = "", error = null) }
-        screenModelScope.launch {
+        scope.launch {
             planRepo.streamGenerate()
                 .catch { _state.update { it.copy(isGenerating = false, error = "Error al generar plan") } }
                 .collect { chunk ->

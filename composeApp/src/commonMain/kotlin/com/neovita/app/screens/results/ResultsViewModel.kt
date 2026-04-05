@@ -1,7 +1,8 @@
 package com.neovita.app.screens.results
 
-import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.neovita.shared.domain.model.PillarScores
 import com.neovita.shared.domain.repository.AssessmentRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,12 +16,13 @@ data class ResultsState(
     val error: String? = null
 )
 
-class ResultsViewModel(private val assessmentRepo: AssessmentRepository) : ScreenModel {
+class ResultsViewModel(private val assessmentRepo: AssessmentRepository) {
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(ResultsState())
     val state = _state.asStateFlow()
 
     init {
-        screenModelScope.launch {
+        scope.launch {
             val assessment = assessmentRepo.getLatestAssessment("")
             _state.update {
                 it.copy(

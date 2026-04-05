@@ -28,3 +28,19 @@ INSERT OR REPLACE INTO CachedPlan VALUES (?,?,?,?);
 
 getCurrentPlan:
 SELECT * FROM CachedPlan WHERE userId = ? ORDER BY generatedAt DESC LIMIT 1;
+
+CREATE TABLE HealthMetrics (
+    userId TEXT NOT NULL PRIMARY KEY,
+    steps INTEGER,
+    weightKg REAL,
+    bloodPressureSys INTEGER,
+    bloodPressureDia INTEGER,
+    glucoseMgdl INTEGER,
+    updatedAt INTEGER NOT NULL
+);
+
+upsertMetrics:
+INSERT OR REPLACE INTO HealthMetrics VALUES (?,?,?,?,?,?,?);
+
+getMetrics:
+SELECT * FROM HealthMetrics WHERE userId = ?;
