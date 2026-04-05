@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NeoVita launcher icon foreground
+  Concept: A stylized leaf shape with a heartbeat/pulse line running through it,
+  symbolizing "New Life" (Neo + Vita). Clean white on crimson background.
+  Safe zone: 66×66dp centered within 108×108dp canvas (adaptive icon spec).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer glow ring (soft translucent circle) -->
+    <path
+        android:fillColor="#1AFFFFFF"
+        android:pathData="M54,18
+            a36,36 0 1,1 0,72
+            a36,36 0 1,1 0,-72 Z" />
+
+    <!-- Main leaf shape — pointing upward, wide base -->
+    <!-- A teardrop / leaf: top point at (54, 22), curves out to sides, base at (54, 72) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M54,26
+            C54,26 38,38 38,55
+            C38,64 45,70 54,70
+            C63,70 70,64 70,55
+            C70,38 54,26 54,26 Z" />
+
+    <!-- Inner leaf vein / stem (crimson cutout to show through) -->
+    <path
+        android:fillColor="#8B1042"
+        android:pathData="
+            M54,65
+            L54,44
+            Q54,43 54,42" />
+    <!-- Stem line using stroke approach -->
+    <path
+        android:strokeColor="#8B1042"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,65 L54,42" />
+
+    <!-- Heartbeat / pulse line overlay across the leaf (white with slight contrast) -->
+    <!-- The line goes left→dip→spike→dip→right across the leaf's midsection ~y=54 -->
+    <path
+        android:strokeColor="#8B1042"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="
+            M40,54
+            L46,54
+            L48,48
+            L51,60
+            L54,46
+            L57,62
+            L60,54
+            L68,54" />
+
+</vector>

@@ -1,0 +1,46 @@
+CREATE TABLE CachedAssessment (
+    id TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    exerciseFrequency TEXT NOT NULL,
+    exerciseType TEXT NOT NULL,
+    sleepHours TEXT NOT NULL,
+    sleepQuality INTEGER NOT NULL,
+    mainGoal TEXT NOT NULL,
+    scoresJson TEXT NOT NULL
+);
+
+insertAssessment:
+INSERT OR REPLACE INTO CachedAssessment VALUES (?,?,?,?,?,?,?,?,?);
+
+getLatestAssessment:
+SELECT * FROM CachedAssessment WHERE userId = ? ORDER BY createdAt DESC LIMIT 1;
+
+CREATE TABLE CachedPlan (
+    id TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    generatedAt INTEGER NOT NULL,
+    planJson TEXT NOT NULL
+);
+
+insertPlan:
+INSERT OR REPLACE INTO CachedPlan VALUES (?,?,?,?);
+
+getCurrentPlan:
+SELECT * FROM CachedPlan WHERE userId = ? ORDER BY generatedAt DESC LIMIT 1;
+
+CREATE TABLE HealthMetrics (
+    userId TEXT NOT NULL PRIMARY KEY,
+    steps INTEGER,
+    weightKg REAL,
+    bloodPressureSys INTEGER,
+    bloodPressureDia INTEGER,
+    glucoseMgdl INTEGER,
+    updatedAt INTEGER NOT NULL
+);
+
+upsertMetrics:
+INSERT OR REPLACE INTO HealthMetrics VALUES (?,?,?,?,?,?,?);
+
+getMetrics:
+SELECT * FROM HealthMetrics WHERE userId = ?;

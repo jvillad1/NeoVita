@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS HealthMetrics (
+    userId TEXT NOT NULL PRIMARY KEY,
+    steps INTEGER,
+    weightKg REAL,
+    bloodPressureSys INTEGER,
+    bloodPressureDia INTEGER,
+    glucoseMgdl INTEGER,
+    updatedAt INTEGER NOT NULL
+);

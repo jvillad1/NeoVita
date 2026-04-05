@@ -8,3 +8,8 @@ local.properties
 Pods/
 .superpowers/
 .worktrees/
+
+# Business documents (kept in Desktop/AI/NeoVita/)
+*.docx
+*.xlsx
+NeoVita_MVP.html
