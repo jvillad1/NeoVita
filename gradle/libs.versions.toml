@@ -5,7 +5,7 @@ ktor = "3.0.3"
 exposed = "0.56.0"
 sqldelight = "2.0.2"
 koin = "4.0.0"
-voyager = "1.0.0"
+voyager = "1.1.0-beta03"
 postgresql-driver = "42.7.4"
 kotlinx-coroutines = "1.9.0"
 kotlinx-serialization = "1.7.3"
@@ -68,9 +68,11 @@ logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 android-application = { id = "com.android.application", version = "8.7.3" }
 android-library = { id = "com.android.library", version = "8.7.3" }

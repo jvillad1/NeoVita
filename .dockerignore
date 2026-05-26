@@ -1,0 +1,19 @@
+# Build outputs
+build/
+.gradle/
+**/build/
+
+# Local config & secrets
+local.properties
+*.local.properties
+.env
+
+# IDE
+.idea/
+*.iml
+
+# Claude worktrees (full repo checkouts — never part of the build context)
+.claude/worktrees/
+
+# VCS
+.git/
