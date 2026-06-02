@@ -14,4 +14,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NeoVita"
-include(":composeApp", ":server", ":shared")
+include(":core", ":shared", ":androidApp", ":webApp", ":server")
