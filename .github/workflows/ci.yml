@@ -38,27 +38,27 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Assemble debug APK
-        run: ./gradlew :composeApp:assembleDebug
+        run: ./gradlew :androidApp:assembleDebug
 
       - name: Android Lint
-        run: ./gradlew :composeApp:lintDebug
+        run: ./gradlew :androidApp:lintDebug
 
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lint-report
-          path: composeApp/build/reports/lint-results-debug.html
+          path: androidApp/build/reports/lint-results-debug.html
           retention-days: 14
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          path: androidApp/build/outputs/apk/debug/androidApp-debug.apk
           retention-days: 7
 
-  # ── Job 2: Unit tests (server + shared JVM) ───────────────────────────────
+  # ── Job 2: Unit tests (server + core JVM) ─────────────────────────────────
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run unit tests
-        run: ./gradlew :server:test :shared:testDebugUnitTest
+        run: ./gradlew :server:test :core:testDebugUnitTest
 
       - name: Upload test results
         if: always()
@@ -88,7 +88,7 @@ jobs:
           path: "**/build/reports/tests/"
           retention-days: 14
 
-  # ── Job 3: Shared commonMain compiles for Android target ─────────────────
+  # ── Job 3: core + shared commonMain compile for Android target ───────────
   # iOS requires macOS + Xcode; WasmJS requires Node toolchain.
   # Android compilation already validates all commonMain sources.
   kmp-shared:
@@ -109,5 +109,5 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Compile shared module (Android target)
-        run: ./gradlew :shared:compileDebugKotlinAndroid :shared:compileReleaseKotlinAndroid
+      - name: Compile core + shared modules (Android target)
+        run: ./gradlew :core:compileDebugKotlinAndroid :core:compileReleaseKotlinAndroid :shared:compileDebugKotlinAndroid :shared:compileReleaseKotlinAndroid
