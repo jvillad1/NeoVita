@@ -1,6 +1,7 @@
 package com.neovita.server
 
 import com.neovita.server.db.repositories.AssessmentRepository
+import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.PlanRepository
 import com.neovita.server.db.repositories.UserRepository
 import com.neovita.server.plugins.*
@@ -12,13 +13,12 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 
-fun main() {
-    val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
-    embeddedServer(Netty, port = port, host = "0.0.0.0", module = Application::module).start(wait = true)
-}
+// EngineMain loads application.conf (resolving ${?DB_URL}/${?JWT_SECRET}/${?CLAUDE_API_KEY}
+// from the environment) and binds ktor.deployment.port — which reads $PORT on Railway,
+// defaulting to 8080 locally. Host defaults to 0.0.0.0.
+fun main(args: Array<String>) = EngineMain.main(args)
 
 fun Application.module() {
     val config = environment.config
@@ -28,6 +28,7 @@ fun Application.module() {
     val userRepo = UserRepository()
     val assessmentRepo = AssessmentRepository()
     val planRepo = PlanRepository()
+    val contentRepo = ContentRepository()
     val jwtService = JwtService(
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString(),
@@ -47,5 +48,5 @@ fun Application.module() {
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString()
     )
-    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService)
+    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo)
 }

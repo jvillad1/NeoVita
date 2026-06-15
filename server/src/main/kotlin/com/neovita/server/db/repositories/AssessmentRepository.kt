@@ -1,8 +1,9 @@
 package com.neovita.server.db.repositories
 
 import com.neovita.server.db.tables.AssessmentsTable
-import com.neovita.server.services.PillarScores
-import com.neovita.server.services.ScoreService
+import com.neovita.shared.data.mapper.toDto
+import com.neovita.shared.domain.usecase.CalculateScoresUseCase
+import com.neovita.shared.network.dto.PillarScoresDto
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.UUID
@@ -11,17 +12,18 @@ data class AssessmentEntity(
     val id: String, val userId: String, val createdAt: Long,
     val exerciseFrequency: String, val exerciseType: String,
     val sleepHours: String, val sleepQuality: Int, val mainGoal: String,
-    val scores: PillarScores
+    val scores: PillarScoresDto
 )
 
 class AssessmentRepository {
+    private val calculateScores = CalculateScoresUseCase()
     fun save(
         userId: String, frequency: String, type: String,
         sleepHours: String, sleepQuality: Int, goal: String
     ): AssessmentEntity {
         val id = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
-        val scores = ScoreService.calculate(frequency, type, sleepHours, sleepQuality)
+        val scores = calculateScores(frequency, type, sleepHours, sleepQuality).toDto()
         transaction {
             AssessmentsTable.insert {
                 it[AssessmentsTable.id] = id
@@ -56,7 +58,7 @@ class AssessmentRepository {
             exerciseFrequency = freq, exerciseType = type,
             sleepHours = sh, sleepQuality = sq,
             mainGoal = this[AssessmentsTable.mainGoal],
-            scores = ScoreService.calculate(freq, type, sh, sq)
+            scores = calculateScores(freq, type, sh, sq).toDto()
         )
     }
 }

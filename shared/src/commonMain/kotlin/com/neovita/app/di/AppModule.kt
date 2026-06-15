@@ -1,6 +1,7 @@
 package com.neovita.app.di
 
 import com.neovita.app.auth.GoogleSignInClient
+import com.neovita.app.screens.admin.ContentAdminViewModel
 import com.neovita.app.screens.assessment.AssessmentViewModel
 import com.neovita.app.screens.chat.ChatViewModel
 import com.neovita.app.screens.dashboard.DashboardViewModel
@@ -14,11 +15,12 @@ import org.koin.dsl.module
 val appModule = module {
     factory { GoogleSignInClient() }
     factory { LoginViewModel(get(), get()) }
-    factory { DashboardViewModel(get(), get()) }
+    factory { DashboardViewModel(get(), get(), get()) }
     factory { ChatViewModel(get()) }
     factory { PlanViewModel(get()) }
     factory { AssessmentViewModel(get()) }
     factory { OnboardingViewModel(get()) }
     factory { ResultsViewModel(get()) }
     factory { ProfileViewModel(get(), getOrNull()) }
+    factory { ContentAdminViewModel(get()) }
 }

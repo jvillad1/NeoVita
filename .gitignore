@@ -16,3 +16,10 @@ Pods/
 *.docx
 *.xlsx
 NeoVita_MVP.html
+
+# Generated at Docker build time (wasm web bundle copied into the fat JAR)
+server/src/main/resources/static/
+
+# Local tooling / test artifacts
+.playwright-mcp/
+neovita-web-*.png

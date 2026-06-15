@@ -11,7 +11,9 @@ class CalculateScoresUseCase {
             "Todos los días" -> 100; "4-5 veces" -> 85; "2-3 veces" -> 65
             "1 vez" -> 40; else -> 10
         }
-        val exerciseTypeBonus = if (exerciseType == "Pesas o resistencia") 5 else 0
+        val exerciseTypeBonus = when (exerciseType) {
+            "Pesas o resistencia" -> 5; "Yoga o pilates" -> 3; else -> 0
+        }
         val exercise = (exerciseFreqScore + exerciseTypeBonus).coerceAtMost(100)
 
         val sleepHoursScore = when (sleepHours) {

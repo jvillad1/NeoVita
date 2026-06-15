@@ -6,6 +6,7 @@ import kotlinx.coroutines.SupervisorJob
 import com.neovita.app.auth.GoogleSignInClient
 import com.neovita.shared.network.ApiService
 import com.neovita.shared.network.dto.AuthResponse
+import com.neovita.shared.session.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +37,9 @@ class LoginViewModel(
             }
             apiService.authenticateWithGoogle(result.idToken)
                 .onSuccess { auth ->
-                    apiService.setToken(auth.token)
+                    // Persist the session (survives restarts) and flag onboarding for new users.
+                    SessionManager.pendingOnboarding = auth.isNewUser
+                    SessionManager.login(auth.token)
                     _state.update { it.copy(isLoading = false, success = auth) }
                 }
                 .onFailure {

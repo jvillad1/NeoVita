@@ -4,8 +4,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import com.neovita.shared.domain.model.LongevityPlan
+import com.neovita.shared.domain.repository.ContentRepository
 import com.neovita.shared.domain.repository.PlanRepository
 import com.neovita.shared.domain.repository.UserRepository
+import com.neovita.shared.network.dto.ContentItemDto
 import com.neovita.shared.network.dto.UserDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,7 +61,8 @@ private val ALL_CONTENT = listOf(
 
 class DashboardViewModel(
     private val userRepo: UserRepository,
-    private val planRepo: PlanRepository
+    private val planRepo: PlanRepository,
+    private val contentRepo: ContentRepository
 ) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(DashboardState())
@@ -72,13 +75,19 @@ class DashboardViewModel(
             _state.update { it.copy(isLoading = true) }
             val user = userRepo.getMe().getOrNull()
             val plan = planRepo.getCurrent().getOrNull()
-            _state.update { it.copy(user = user, plan = plan, isLoading = false, feed = buildFeed(plan)) }
+            // Content is server-managed (CRUD on /api/content). Fall back to the bundled
+            // list only when offline / before the server has seeded.
+            val content = contentRepo.getContent().getOrNull()
+                ?.map { it.toItem() }
+                ?.takeIf { it.isNotEmpty() }
+                ?: ALL_CONTENT
+            _state.update { it.copy(user = user, plan = plan, isLoading = false, feed = buildFeed(plan, content)) }
         }
     }
 
     // Surfaces content for the user's weakest pillars first
-    private fun buildFeed(plan: LongevityPlan?): List<ContentItem> {
-        if (plan == null) return ALL_CONTENT.shuffled().take(6)
+    private fun buildFeed(plan: LongevityPlan?, content: List<ContentItem>): List<ContentItem> {
+        if (plan == null) return content.shuffled().take(6)
 
         val pillarOrder = listOf(
             ContentCategory.EXERCISE to plan.scores.exercise,
@@ -89,7 +98,16 @@ class DashboardViewModel(
         ).sortedBy { it.second }.map { it.first }
 
         return pillarOrder.flatMap { category ->
-            ALL_CONTENT.filter { it.category == category }
+            content.filter { it.category == category }
         }
     }
 }
+
+private fun ContentItemDto.toItem() = ContentItem(
+    id = id,
+    title = title,
+    category = runCatching { ContentCategory.valueOf(category) }.getOrDefault(ContentCategory.GENERAL),
+    type = runCatching { ContentType.valueOf(type) }.getOrDefault(ContentType.ARTICLE),
+    teaser = teaser,
+    readMinutes = readMinutes,
+)

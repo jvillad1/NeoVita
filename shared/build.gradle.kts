@@ -79,3 +79,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+
+// Bundled fonts (Roboto + Noto Emoji) live in commonMain/composeResources/font.
+// Pin the generated accessor package so imports are stable across targets.
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "com.neovita.app.resources"
+}

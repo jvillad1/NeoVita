@@ -11,10 +11,10 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
+// The auth token is attached centrally by the HttpClient (see sharedModule's
+// defaultRequest), so endpoints below no longer set the Authorization header
+// per-call. 401/2xx handling also lives in the client's HttpCallValidator.
 class ApiService(private val baseUrl: String, private val httpClient: HttpClient) {
-
-    private var token: String? = null
-    fun setToken(t: String) { token = t }
 
     suspend fun authenticateWithGoogle(idToken: String): Result<AuthResponse> = safeCall {
         httpClient.post("$baseUrl/auth/google") {
@@ -24,24 +24,50 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
     }
 
     suspend fun getMe(): Result<UserDto> = safeCall {
-        httpClient.get("$baseUrl/users/me") { bearerAuth() }.body()
+        httpClient.get("$baseUrl/users/me").body()
     }
 
     suspend fun patchMe(name: String? = null, age: Int? = null): Result<UserDto> = safeCall {
         httpClient.patch("$baseUrl/users/me") {
-            bearerAuth(); contentType(ContentType.Application.Json)
+            contentType(ContentType.Application.Json)
             setBody(PatchUserRequest(name, age))
         }.body()
     }
 
     suspend fun saveAssessment(req: AssessmentRequest): Result<AssessmentResponse> = safeCall {
         httpClient.post("$baseUrl/assessments") {
-            bearerAuth(); contentType(ContentType.Application.Json); setBody(req)
+            contentType(ContentType.Application.Json); setBody(req)
         }.body()
     }
 
     suspend fun getLatestAssessment(): Result<AssessmentResponse> = safeCall {
-        httpClient.get("$baseUrl/assessments/latest") { bearerAuth() }.body()
+        httpClient.get("$baseUrl/assessments/latest").body()
+    }
+
+    suspend fun getContent(): Result<List<ContentItemDto>> = safeCall {
+        httpClient.get("$baseUrl/content").body()
+    }
+
+    // --- Content administration (EMPLOYER role; token attached by the client) ---
+
+    suspend fun getAllContent(): Result<List<ContentItemDto>> = safeCall {
+        httpClient.get("$baseUrl/content/all").body()
+    }
+
+    suspend fun createContent(req: ContentRequest): Result<ContentItemDto> = safeCall {
+        httpClient.post("$baseUrl/content") {
+            contentType(ContentType.Application.Json); setBody(req)
+        }.body()
+    }
+
+    suspend fun updateContent(id: String, req: ContentRequest): Result<ContentItemDto> = safeCall {
+        httpClient.put("$baseUrl/content/$id") {
+            contentType(ContentType.Application.Json); setBody(req)
+        }.body()
+    }
+
+    suspend fun deleteContent(id: String): Result<Unit> = safeCall {
+        httpClient.delete("$baseUrl/content/$id"); Unit
     }
 
     fun streamPlanGeneration(): Flow<String> =
@@ -53,7 +79,6 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
     private fun sseFlow(url: String, method: HttpMethod, body: Any? = null): Flow<String> = flow {
         httpClient.prepareRequest(url) {
             this.method = method
-            bearerAuth()
             body?.let { setBody(it) }
         }.execute { response ->
             val channel = response.bodyAsChannel()
@@ -64,10 +89,6 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
                 }
             }
         }
-    }
-
-    private fun HttpRequestBuilder.bearerAuth() {
-        token?.let { header(HttpHeaders.Authorization, "Bearer $it") }
     }
 
     private suspend fun <T> safeCall(block: suspend () -> T): Result<T> =
