@@ -2,8 +2,12 @@ package com.neovita.shared.network.dto
 
 import kotlinx.serialization.Serializable
 
-// category: NUTRITION | EXERCISE | SLEEP | MENTAL_HEALTH | GENERAL
-// type:     ARTICLE | TIP | VIDEO
+/** Allowed content taxonomy — single source of truth shared by server (validation)
+ *  and client (admin form dropdowns). Keep in sync with the UI's ContentCategory/Type enums. */
+object ContentTaxonomy {
+    val CATEGORIES = listOf("NUTRITION", "EXERCISE", "SLEEP", "MENTAL_HEALTH", "GENERAL")
+    val TYPES = listOf("ARTICLE", "TIP", "VIDEO")
+}
 @Serializable data class ContentItemDto(
     val id: String,
     val title: String,

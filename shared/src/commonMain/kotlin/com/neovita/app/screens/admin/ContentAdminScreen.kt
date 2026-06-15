@@ -20,10 +20,11 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.neovita.app.ui.theme.NeoCrimson
 import com.neovita.shared.network.dto.ContentItemDto
 import com.neovita.shared.network.dto.ContentRequest
+import com.neovita.shared.network.dto.ContentTaxonomy
 import org.koin.compose.koinInject
 
-private val CATEGORIES = listOf("NUTRITION", "EXERCISE", "SLEEP", "MENTAL_HEALTH", "GENERAL")
-private val TYPES = listOf("ARTICLE", "TIP", "VIDEO")
+private val CATEGORIES = ContentTaxonomy.CATEGORIES
+private val TYPES = ContentTaxonomy.TYPES
 
 class ContentAdminScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)

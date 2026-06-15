@@ -62,7 +62,7 @@ class ContentRepository {
     fun seedIfEmpty(items: List<ContentItemDto>) = transaction {
         if (ContentTable.selectAll().limit(1).empty()) {
             val now = System.currentTimeMillis()
-            items.forEachIndexed { index, item ->
+            items.forEach { item ->
                 ContentTable.insert {
                     it[id] = item.id
                     it[title] = item.title
@@ -70,7 +70,7 @@ class ContentRepository {
                     it[type] = item.type
                     it[teaser] = item.teaser
                     it[readMinutes] = item.readMinutes
-                    it[sortOrder] = if (item.sortOrder != 0) item.sortOrder else index
+                    it[sortOrder] = item.sortOrder
                     it[active] = item.active
                     it[createdAt] = now
                 }

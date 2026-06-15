@@ -8,7 +8,7 @@ import androidx.compose.runtime.remember
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import com.neovita.app.screens.login.LoginScreen
-import com.neovita.app.screens.dashboard.DashboardScreen
+import com.neovita.app.screens.main.MainScreen
 import com.neovita.app.screens.onboarding.OnboardingScreen
 import com.neovita.shared.session.SessionManager
 
@@ -20,7 +20,9 @@ fun AppNavigation() {
         when {
             !SessionManager.isLoggedIn -> LoginScreen()
             SessionManager.pendingOnboarding -> OnboardingScreen()
-            else -> DashboardScreen()
+            // MainScreen (not DashboardScreen) so a returning user still gets the
+            // bottom tab bar — DashboardScreen is only HomeTab's content inside it.
+            else -> MainScreen()
         }
     }
     val loggedIn by SessionManager.loggedIn.collectAsState()

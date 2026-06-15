@@ -28,6 +28,9 @@ fun sharedModule(baseUrl: String, cache: LocalCache?) = module {
     single {
         HttpClient {
             install(ContentNegotiation) { json() }
+            // Non-2xx responses throw (so safeCall can classify 401/404 by the status
+            // in the exception message, and silent successes like DELETE surface errors).
+            expectSuccess = true
             // Auth as a cross-cutting concern (Movi pattern): attach the stored
             // token to every request, and centralize 401 handling here.
             defaultRequest {

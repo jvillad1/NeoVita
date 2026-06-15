@@ -2,7 +2,9 @@ package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.UserRepository
+import com.neovita.server.plugins.requireRole
 import com.neovita.shared.network.dto.ContentRequest
+import com.neovita.shared.network.dto.ContentTaxonomy
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -19,23 +21,25 @@ fun Route.contentRoutes(repo: ContentRepository, userRepository: UserRepository)
     // Management endpoints — require a valid session AND the EMPLOYER (admin) role.
     authenticate("jwt-auth") {
         get("/content/all") {
-            if (!call.requireEmployer(userRepository)) return@get
+            if (!call.requireRole(userRepository, "EMPLOYER")) return@get
             call.respond(repo.listAll())
         }
         post("/content") {
-            if (!call.requireEmployer(userRepository)) return@post
+            if (!call.requireRole(userRepository, "EMPLOYER")) return@post
             val req = call.receive<ContentRequest>()
+            call.validate(req)?.let { return@post call.respond(HttpStatusCode.BadRequest, it) }
             call.respond(HttpStatusCode.Created, repo.create(req))
         }
         put("/content/{id}") {
-            if (!call.requireEmployer(userRepository)) return@put
+            if (!call.requireRole(userRepository, "EMPLOYER")) return@put
             val id = call.parameters["id"] ?: return@put call.respond(HttpStatusCode.BadRequest)
             val req = call.receive<ContentRequest>()
+            call.validate(req)?.let { return@put call.respond(HttpStatusCode.BadRequest, it) }
             val updated = repo.update(id, req) ?: return@put call.respond(HttpStatusCode.NotFound)
             call.respond(updated)
         }
         delete("/content/{id}") {
-            if (!call.requireEmployer(userRepository)) return@delete
+            if (!call.requireRole(userRepository, "EMPLOYER")) return@delete
             val id = call.parameters["id"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
             if (repo.delete(id)) call.respond(HttpStatusCode.NoContent)
             else call.respond(HttpStatusCode.NotFound)
@@ -43,13 +47,11 @@ fun Route.contentRoutes(repo: ContentRepository, userRepository: UserRepository)
     }
 }
 
-/** Responds 403 and returns false unless the caller is an EMPLOYER (content admin). */
-private suspend fun ApplicationCall.requireEmployer(users: UserRepository): Boolean {
-    val userId = principal<UserIdPrincipal>()?.name
-    val user = userId?.let { users.findById(it) }
-    if (user?.role != "EMPLOYER") {
-        respond(HttpStatusCode.Forbidden, mapOf("code" to "FORBIDDEN", "message" to "Se requiere rol EMPLOYER"))
-        return false
-    }
-    return true
+/** Returns an error body if category/type are outside the allowed taxonomy, else null. */
+private fun ApplicationCall.validate(req: ContentRequest): Map<String, String>? = when {
+    req.category !in ContentTaxonomy.CATEGORIES ->
+        mapOf("code" to "INVALID_CATEGORY", "message" to "Categoría inválida: ${req.category}")
+    req.type !in ContentTaxonomy.TYPES ->
+        mapOf("code" to "INVALID_TYPE", "message" to "Tipo inválido: ${req.type}")
+    else -> null
 }
