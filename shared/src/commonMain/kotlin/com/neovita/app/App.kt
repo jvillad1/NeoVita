@@ -12,8 +12,8 @@ import org.koin.compose.KoinApplication
 fun App(baseUrl: String = "http://localhost:8080", cache: LocalCache? = null) {
     KoinApplication(application = { modules(sharedModule(baseUrl, cache), appModule) }) {
         NeoVitaTheme {
-            // Default: not logged in — LoginScreen handles the flow
-            AppNavigation(isLoggedIn = false, isNewUser = false)
+            // Start screen + forced-logout handling derive from the persisted session.
+            AppNavigation()
         }
     }
 }

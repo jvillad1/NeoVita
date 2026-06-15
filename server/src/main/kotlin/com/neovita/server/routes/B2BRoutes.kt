@@ -2,7 +2,7 @@ package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.UserRepository
-import com.neovita.server.services.PillarScores
+import com.neovita.shared.network.dto.PillarScoresDto
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -28,7 +28,7 @@ fun Route.b2bRoutes(userRepository: UserRepository, assessmentRepo: AssessmentRe
                 )
             }
             val avgScore = teamData
-                .mapNotNull { (it["scores"] as? PillarScores)?.overall }
+                .mapNotNull { (it["scores"] as? PillarScoresDto)?.overall }
                 .average()
                 .let { if (it.isNaN()) 0 else it.toInt() }
             call.respond(mapOf("team" to teamData, "avgScore" to avgScore))
