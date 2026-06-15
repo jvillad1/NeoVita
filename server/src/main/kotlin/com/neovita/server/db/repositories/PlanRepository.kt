@@ -1,7 +1,7 @@
 package com.neovita.server.db.repositories
 
 import com.neovita.server.db.tables.PlansTable
-import com.neovita.server.services.PillarScores
+import com.neovita.shared.network.dto.PillarScoresDto
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
@@ -10,11 +10,11 @@ import java.util.UUID
 
 data class PlanEntity(
     val id: String, val userId: String, val generatedAt: Long,
-    val planContent: String, val scores: PillarScores
+    val planContent: String, val scores: PillarScoresDto
 )
 
 class PlanRepository {
-    fun save(userId: String, scores: PillarScores, planContent: String): PlanEntity {
+    fun save(userId: String, scores: PillarScoresDto, planContent: String): PlanEntity {
         val id = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
         transaction {

@@ -10,6 +10,7 @@ application {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.auth)

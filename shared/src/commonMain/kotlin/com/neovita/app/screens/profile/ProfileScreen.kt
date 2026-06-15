@@ -27,12 +27,14 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.AsyncImage
 import com.neovita.app.screens.login.LoginScreen
+import com.neovita.app.screens.admin.ContentAdminScreen
 import com.neovita.app.screens.assessment.AssessmentScreen
 import com.neovita.app.ui.assets.profileAvatarModel
 import com.neovita.app.ui.theme.*
 import com.neovita.shared.data.cache.LocalCache
 import com.neovita.shared.domain.repository.UserRepository
 import com.neovita.shared.network.dto.UserDto
+import com.neovita.shared.session.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -320,6 +322,15 @@ class ProfileScreen : Screen {
                         onClick = { navigator.parent?.push(AssessmentScreen()) }
                     )
                     HorizontalDivider(color = NeoDarkSurface2)
+                    // Content administration — only for EMPLOYER (admin) accounts.
+                    if (state.user?.role == "EMPLOYER") {
+                        SettingsItem(
+                            icon = "🗂️",
+                            title = "Administrar contenido",
+                            onClick = { navigator.parent?.push(ContentAdminScreen()) }
+                        )
+                        HorizontalDivider(color = NeoDarkSurface2)
+                    }
                     // Sign out item in red
                     ListItem(
                         headlineContent = {
@@ -344,7 +355,7 @@ class ProfileScreen : Screen {
             }
             // Actual sign out action
             OutlinedButton(
-                onClick = { navigator.parent?.replaceAll(LoginScreen()) },
+                onClick = { SessionManager.clear(); navigator.parent?.replaceAll(LoginScreen()) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp)

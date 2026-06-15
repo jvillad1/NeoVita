@@ -2,13 +2,13 @@ package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.UserRepository
 import com.neovita.server.db.toDto
+import com.neovita.shared.network.dto.PatchUserRequest
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.Serializable
 
 fun Route.userRoutes(userRepository: UserRepository) {
     authenticate("jwt-auth") {
@@ -20,8 +20,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
         }
         patch("/users/me") {
             val userId = call.principal<UserIdPrincipal>()!!.name
-            @Serializable data class PatchRequest(val name: String? = null, val age: Int? = null)
-            val req = call.receive<PatchRequest>()
+            val req = call.receive<PatchUserRequest>()
             val updated = userRepository.update(userId, req.name, req.age)
             call.respond(updated?.toDto() ?: HttpStatusCode.NotFound)
         }

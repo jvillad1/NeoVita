@@ -19,6 +19,10 @@ kotlin {
         }
     }
     iosX64(); iosArm64(); iosSimulatorArm64()
+    // JVM target so :server can consume the shared contract (DTOs + scoring),
+    // like Movi's :core. Kept database-free: jvm is NOT in the nonWasm group
+    // below, so it inherits only commonMain and never pulls SQLDelight.
+    jvm()
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs { browser() }
 
@@ -51,6 +55,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.koin.core)
+            // Persistent session/token store (multiplatform-settings), Movi-style.
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.no.arg)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

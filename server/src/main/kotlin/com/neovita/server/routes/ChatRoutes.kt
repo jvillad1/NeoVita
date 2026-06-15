@@ -2,21 +2,21 @@ package com.neovita.server.routes
 
 import com.neovita.server.services.ClaudeMessage
 import com.neovita.server.services.ClaudeService
+import com.neovita.shared.network.dto.ChatRequest
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.Serializable
 
 fun Route.chatRoutes(claudeService: ClaudeService) {
     authenticate("jwt-auth") {
         post("/chat") {
-            @Serializable data class ChatRequest(val messages: List<ClaudeMessage>)
             val request = call.receive<ChatRequest>()
+            val messages = request.messages.map { ClaudeMessage(it.role, it.content) }
             call.respondTextWriter(contentType = ContentType.Text.EventStream) {
-                claudeService.streamChat(request.messages).collect { chunk ->
+                claudeService.streamChat(messages).collect { chunk ->
                     write("data: $chunk\n\n")
                     flush()
                 }
