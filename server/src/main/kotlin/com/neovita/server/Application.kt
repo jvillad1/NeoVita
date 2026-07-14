@@ -35,7 +35,8 @@ fun Application.module() {
         audience = config.property("jwt.audience").getString(),
         expirationMs = config.property("jwt.expirationMs").getString().toLong()
     )
-    val googleService = GoogleAuthService(httpClient)
+    val googleClientId = config.propertyOrNull("google.clientId")?.getString()
+    val googleService = GoogleAuthService(httpClient, clientId = googleClientId)
     val claudeService = ClaudeService(
         client = httpClient,
         apiKey = config.property("claude.apiKey").getString(),
@@ -48,5 +49,5 @@ fun Application.module() {
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString()
     )
-    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo)
+    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, googleClientId)
 }
