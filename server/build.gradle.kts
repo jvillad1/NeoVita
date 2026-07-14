@@ -30,5 +30,6 @@ dependencies {
     implementation(libs.logback)
     implementation(libs.java.jwt)
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlin.test)
 }
