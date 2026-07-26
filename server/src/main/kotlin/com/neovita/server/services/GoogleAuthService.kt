@@ -12,7 +12,9 @@ data class GoogleUserInfo(val sub: String, val email: String, val name: String, 
 
 class GoogleAuthService(
     private val httpClient: HttpClient,
-    // OAuth Web Client ID; when set, tokens minted for other apps are rejected (aud check)
+    // OAuth Web Client ID; required for the aud check. Without it, verifyIdToken fails
+    // closed (returns null for every token) — otherwise any valid Google id_token, minted
+    // for ANY app, would be accepted.
     private val clientId: String? = null
 ) {
     // tokeninfo returns ~15 fields (iss, azp, exp, picture, ...) — parse leniently
@@ -20,12 +22,13 @@ class GoogleAuthService(
 
     // Calls Google's tokeninfo endpoint to verify the ID token
     suspend fun verifyIdToken(idToken: String): GoogleUserInfo? = runCatching {
+        if (clientId.isNullOrBlank()) return null
         val response = httpClient.get("https://oauth2.googleapis.com/tokeninfo") {
             parameter("id_token", idToken)
         }
         if (!response.status.isSuccess()) return null
         val info = json.decodeFromString<GoogleUserInfo>(response.bodyAsText())
-        if (!clientId.isNullOrBlank() && info.aud != clientId) return null
+        if (info.aud != clientId) return null
         info
     }.getOrNull()
 }
