@@ -1,5 +1,6 @@
 package com.neovita.shared.di
 
+import com.neovita.shared.config.RemoteConfigRepository
 import com.neovita.shared.data.cache.LocalCache
 import com.neovita.shared.data.repository.AssessmentRepositoryImpl
 import com.neovita.shared.data.repository.ChatRepositoryImpl
@@ -51,6 +52,7 @@ fun sharedModule(baseUrl: String, cache: LocalCache?) = module {
         }
     }
     single { ApiService(baseUrl, get()) }
+    single { RemoteConfigRepository(get()) }
     single<AssessmentRepository> { AssessmentRepositoryImpl(get(), getOrNull()) }
     single<PlanRepository> { PlanRepositoryImpl(get(), getOrNull()) }
     single<UserRepository> { UserRepositoryImpl(get()) }
