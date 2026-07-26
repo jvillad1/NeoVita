@@ -36,10 +36,24 @@ class GoogleAuthServiceTest {
     })
 
     @Test fun `parses real tokeninfo payload with extra fields`() = runBlocking {
-        val service = GoogleAuthService(clientReturning(HttpStatusCode.OK, realTokenInfoJson))
+        val service = GoogleAuthService(
+            clientReturning(HttpStatusCode.OK, realTokenInfoJson),
+            clientId = "1234.apps.googleusercontent.com"
+        )
         val user = service.verifyIdToken("some-token")
         assertEquals("ana@example.com", user?.email)
         assertEquals("Ana García", user?.name)
+    }
+
+    @Test fun `rejects token when no client id configured`() = runBlocking {
+        val noClientId = GoogleAuthService(clientReturning(HttpStatusCode.OK, realTokenInfoJson))
+        assertNull(noClientId.verifyIdToken("some-token"))
+
+        val blankClientId = GoogleAuthService(
+            clientReturning(HttpStatusCode.OK, realTokenInfoJson),
+            clientId = ""
+        )
+        assertNull(blankClientId.verifyIdToken("some-token"))
     }
 
     @Test fun `accepts token when aud matches configured client id`() = runBlocking {

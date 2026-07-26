@@ -32,6 +32,7 @@ private fun gisRequestCredential(clientId: String, onToken: (String) -> Unit, on
         var finish = function(token) {
             if (done) return;
             done = true;
+            google.accounts.id.cancel();
             var overlay = document.getElementById('neovita-gsi-overlay');
             if (overlay) overlay.remove();
             if (token) onToken(token); else onDismiss();
