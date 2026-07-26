@@ -30,7 +30,8 @@ class LoginViewModel(
     fun signInWithGoogle() {
         _state.update { it.copy(isLoading = true, error = null) }
         scope.launch {
-            val result = googleSignInClient.signIn()
+            val clientId = apiService.getConfig().getOrNull()?.googleClientId
+            val result = googleSignInClient.signIn(clientId)
             if (result.idToken == null) {
                 _state.update { it.copy(isLoading = false, error = result.error ?: "Error al iniciar sesión") }
                 return@launch
