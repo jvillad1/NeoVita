@@ -73,8 +73,10 @@ class GoogleAuthServiceTest {
     }
 
     @Test fun `returns null for invalid token response`() = runBlocking {
+        // clientId set so the test exercises the non-2xx branch, not the fail-closed guard
         val service = GoogleAuthService(
-            clientReturning(HttpStatusCode.BadRequest, """{"error":"invalid_token"}""")
+            clientReturning(HttpStatusCode.BadRequest, """{"error":"invalid_token"}"""),
+            clientId = "1234.apps.googleusercontent.com"
         )
         assertNull(service.verifyIdToken("bad-token"))
     }
