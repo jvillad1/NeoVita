@@ -146,23 +146,60 @@ class DashboardScreen : Screen {
 
         val screenDef = state.screenDef
         if (screenDef != null) {
-            SduiRenderer(
-                definition = screenDef,
-                scores = state.plan?.scores,
-                feed = state.feed,
-                onNavigateTab = { target ->
-                    tabNavigator.current = when (target) {
-                        "home" -> HomeTab
-                        "chat" -> ChatTab
-                        "plan" -> PlanTab
-                        "profile" -> ProfileTab
-                        else -> tabNavigator.current
-                    }
-                },
-                onOpenUrl = { url -> uriHandler.openUri(url) },
-            )
+            Column(Modifier.fillMaxSize().background(NeoDarkBg)) {
+                SduiGreetingHeader()
+                Box(Modifier.weight(1f)) {
+                    SduiRenderer(
+                        definition = screenDef,
+                        scores = state.plan?.scores,
+                        feed = state.feed,
+                        onNavigateTab = { target ->
+                            tabNavigator.current = when (target) {
+                                "home" -> HomeTab
+                                "chat" -> ChatTab
+                                "plan" -> PlanTab
+                                "profile" -> ProfileTab
+                                else -> tabNavigator.current
+                            }
+                        },
+                        onOpenUrl = { url -> uriHandler.openUri(url) },
+                    )
+                }
+            }
         } else {
             DashboardFallback(state)
+        }
+    }
+}
+
+// ── Greeting header for the SDUI path — NOT shared with DashboardFallback (that
+//    composable is the insurance policy and stays untouched). Same visual reference
+//    (text, typography, spacing, entrance animation) as DashboardFallback's greeting
+//    block, reimplemented locally so the SDUI branch keeps its own chrome. ───────────
+
+@Composable
+private fun SduiGreetingHeader() {
+    var show by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { show = true }
+
+    AnimatedVisibility(
+        visible = show,
+        enter = fadeIn(tween(350)) + slideInVertically(tween(350)) { it / 3 }
+    ) {
+        Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 28.dp, bottom = 6.dp)) {
+            Text(
+                "Hola, Juan Guillermo",
+                color = NeoTextPrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 32.sp,
+                lineHeight = 36.sp
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Tu viaje hacia la longevidad comienza hoy.",
+                color = NeoTextSecondary,
+                fontSize = 14.sp
+            )
         }
     }
 }
