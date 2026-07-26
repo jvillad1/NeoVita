@@ -99,14 +99,16 @@ class DashboardViewModel(
     //    back to DashboardFallback).
     private fun loadScreen() {
         scope.launch {
-            val cached = localCache?.getScreen("dashboard")
+            // Any cache/storage failure (corrupt DB, driver issue, etc.) degrades to
+            // network-or-fallback instead of crashing this coroutine.
+            val cached = runCatching { localCache?.getScreen("dashboard") }.getOrNull()
             val result = apiService.getScreen("dashboard", cached?.version)
             val def = result.fold(
                 onSuccess = { dto ->
                     when {
                         dto != null -> {
                             val json = Json.encodeToString(ScreenDefinitionDto.serializer(), dto)
-                            localCache?.cacheScreen(dto.slug, dto.version, json)
+                            runCatching { localCache?.cacheScreen(dto.slug, dto.version, json) }
                             dto
                         }
                         cached != null -> decodeCachedScreen(cached.json)
