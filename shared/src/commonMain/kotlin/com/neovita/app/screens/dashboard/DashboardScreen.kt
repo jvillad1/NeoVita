@@ -19,13 +19,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
+import com.neovita.app.navigation.tabs.ChatTab
+import com.neovita.app.navigation.tabs.HomeTab
+import com.neovita.app.navigation.tabs.PlanTab
+import com.neovita.app.navigation.tabs.ProfileTab
 import com.neovita.app.ui.components.ScoreRing
+import com.neovita.app.ui.sdui.SduiRenderer
 import com.neovita.app.ui.theme.*
 
 // ── Experience card data ──────────────────────────────────────────────────────
@@ -134,13 +141,45 @@ class DashboardScreen : Screen {
     override fun Content() {
         val vm: DashboardViewModel = koinInject()
         val state by vm.state.collectAsState()
+        val tabNavigator = LocalTabNavigator.current
+        val uriHandler = LocalUriHandler.current
 
-        var show by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) { show = true }
+        val screenDef = state.screenDef
+        if (screenDef != null) {
+            SduiRenderer(
+                definition = screenDef,
+                scores = state.plan?.scores,
+                feed = state.feed,
+                onNavigateTab = { target ->
+                    tabNavigator.current = when (target) {
+                        "home" -> HomeTab
+                        "chat" -> ChatTab
+                        "plan" -> PlanTab
+                        "profile" -> ProfileTab
+                        else -> tabNavigator.current
+                    }
+                },
+                onOpenUrl = { url -> uriHandler.openUri(url) },
+            )
+        } else {
+            DashboardFallback(state)
+        }
+    }
+}
 
-        // Dot-pattern background
-        Box(Modifier.fillMaxSize().background(NeoDarkBg)) {
-            DotPatternOverlay()
+// ── Fallback — the ORIGINAL screen body, renamed verbatim. This is the insurance
+//    policy for when there is no server-provided screen definition (no cache, first
+//    launch offline, decode failure, etc.) — do NOT refactor it, and do NOT share new
+//    SDUI composables (SduiCard/SduiRenderer) with it. ─────────────────────────────
+
+@Composable
+private fun DashboardFallback(state: DashboardState) {
+    var show by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { show = true }
+
+    // Dot-pattern background
+    Box(Modifier.fillMaxSize().background(NeoDarkBg)) {
+        DotPatternOverlay()
 
             LazyColumn(
                 Modifier.fillMaxSize(),
@@ -212,7 +251,6 @@ class DashboardScreen : Screen {
                 }
             }
         }
-    }
 }
 
 // ── Reusable section with header + horizontal card row ────────────────────────

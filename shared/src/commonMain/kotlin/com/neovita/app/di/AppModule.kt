@@ -15,7 +15,7 @@ import org.koin.dsl.module
 val appModule = module {
     factory { GoogleSignInClient() }
     factory { LoginViewModel(get(), get()) }
-    factory { DashboardViewModel(get(), get(), get()) }
+    factory { DashboardViewModel(get(), get(), get(), get(), getOrNull()) }
     factory { ChatViewModel(get()) }
     factory { PlanViewModel(get()) }
     factory { AssessmentViewModel(get()) }
