@@ -15,6 +15,7 @@ turbine = "1.2.0"
 logback = "1.5.12"
 java-jwt = "4.4.0"
 multiplatform-settings = "1.2.0"
+h2 = "2.2.224"
 
 [libraries]
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "java-jwt" }
@@ -67,6 +68,7 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+h2 = { module = "com.h2database:h2", version.ref = "h2" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

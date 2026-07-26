@@ -3,6 +3,7 @@ package com.neovita.server.plugins
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.PlanRepository
+import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.repositories.UserRepository
 import com.neovita.server.routes.*
 import com.neovita.server.services.ClaudeService
@@ -21,7 +22,8 @@ fun Application.configureRouting(
     assessmentRepo: AssessmentRepository,
     planRepo: PlanRepository,
     claudeService: ClaudeService,
-    contentRepo: ContentRepository
+    contentRepo: ContentRepository,
+    screenRepo: ScreenRepository
 ) {
     routing {
         get("/health") { call.respondText("OK") }
@@ -36,6 +38,7 @@ fun Application.configureRouting(
             chatRoutes(claudeService)
             b2bRoutes(userRepo, assessmentRepo)
             contentRoutes(contentRepo, userRepo)
+            screenRoutes(screenRepo)
         }
 
         // Serve the wasmJs web bundle (copied into resources/static by the Docker build).
