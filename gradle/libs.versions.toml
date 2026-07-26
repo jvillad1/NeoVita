@@ -15,6 +15,8 @@ turbine = "1.2.0"
 logback = "1.5.12"
 java-jwt = "4.4.0"
 multiplatform-settings = "1.2.0"
+androidx-credentials = "1.3.0"
+googleid = "1.1.1"
 
 [libraries]
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "java-jwt" }
@@ -63,6 +65,10 @@ multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+# Androidx Credentials
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
+androidx-credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 # Test
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
