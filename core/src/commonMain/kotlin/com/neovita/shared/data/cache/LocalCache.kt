@@ -30,6 +30,10 @@ interface LocalCache {
         bloodPressureDia: Long?,
         glucoseMgdl: Long?,
     )
+
+    fun cacheScreen(slug: String, version: Int, json: String)
+
+    fun getScreen(slug: String): CachedScreen?
 }
 
 data class CachedPlan(
@@ -45,4 +49,9 @@ data class CachedMetrics(
     val bloodPressureSys: Long?,
     val bloodPressureDia: Long?,
     val glucoseMgdl: Long?,
+)
+
+data class CachedScreen(
+    val version: Int,
+    val json: String,
 )
