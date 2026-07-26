@@ -23,6 +23,10 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
         }.body()
     }
 
+    suspend fun getConfig(): Result<WebConfigResponse> = safeCall {
+        httpClient.get("$baseUrl/config").body()
+    }
+
     suspend fun getMe(): Result<UserDto> = safeCall {
         httpClient.get("$baseUrl/users/me").body()
     }
