@@ -31,4 +31,5 @@ dependencies {
     implementation(libs.java.jwt)
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test)
+    testImplementation(libs.h2)
 }
