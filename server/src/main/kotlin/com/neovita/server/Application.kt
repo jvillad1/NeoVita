@@ -13,6 +13,7 @@ import com.neovita.server.plugins.*
 import com.neovita.server.services.ClaudeService
 import com.neovita.server.services.GoogleAuthService
 import com.neovita.server.services.JwtService
+import com.neovita.server.services.PushService
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -62,6 +63,7 @@ fun Application.module() {
         apiKey = config.property("claude.apiKey").getString(),
         model = config.property("claude.model").getString()
     )
+    val pushService = PushService(config.propertyOrNull("push.serviceAccount")?.getString())
 
     configureDatabase()
     configureSerialization()
@@ -69,5 +71,5 @@ fun Application.module() {
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString()
     )
-    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, deviceTokenRepo, googleClientId, appConfig)
+    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, deviceTokenRepo, googleClientId, appConfig, pushService)
 }
