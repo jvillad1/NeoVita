@@ -24,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import coil3.compose.AsyncImage
 import org.koin.compose.koinInject
@@ -31,6 +33,7 @@ import com.neovita.app.navigation.tabs.ChatTab
 import com.neovita.app.navigation.tabs.HomeTab
 import com.neovita.app.navigation.tabs.PlanTab
 import com.neovita.app.navigation.tabs.ProfileTab
+import com.neovita.app.screens.web.WebContentScreen
 import com.neovita.app.ui.components.ScoreRing
 import com.neovita.app.ui.sdui.SduiRenderer
 import com.neovita.app.ui.theme.*
@@ -142,6 +145,7 @@ class DashboardScreen : Screen {
         val vm: DashboardViewModel = koinInject()
         val state by vm.state.collectAsState()
         val tabNavigator = LocalTabNavigator.current
+        val navigator = LocalNavigator.currentOrThrow
         val uriHandler = LocalUriHandler.current
 
         val screenDef = state.screenDef
@@ -163,6 +167,9 @@ class DashboardScreen : Screen {
                             }
                         },
                         onOpenUrl = { url -> uriHandler.openUri(url) },
+                        onOpenWebView = { title, url ->
+                            navigator.parent?.push(WebContentScreen(title, url))
+                        },
                     )
                 }
             }
