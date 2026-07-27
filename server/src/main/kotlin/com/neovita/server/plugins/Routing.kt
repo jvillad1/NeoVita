@@ -3,6 +3,7 @@ package com.neovita.server.plugins
 import com.neovita.server.config.AppRuntimeConfig
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
+import com.neovita.server.db.repositories.DeviceTokenRepository
 import com.neovita.server.db.repositories.PlanRepository
 import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.repositories.UserRepository
@@ -25,6 +26,7 @@ fun Application.configureRouting(
     claudeService: ClaudeService,
     contentRepo: ContentRepository,
     screenRepo: ScreenRepository,
+    deviceTokenRepo: DeviceTokenRepository,
     googleClientId: String? = null,
     appConfig: AppRuntimeConfig = AppRuntimeConfig(emptyMap(), 0, 0, false, null)
 ) {
@@ -43,6 +45,7 @@ fun Application.configureRouting(
             b2bRoutes(userRepo, assessmentRepo)
             contentRoutes(contentRepo, userRepo)
             screenRoutes(screenRepo)
+            deviceRoutes(deviceTokenRepo)
         }
 
         // Server-rendered pages for in-app WebView slots — outside /api, before the
