@@ -62,6 +62,9 @@ kotlin {
             implementation("io.insert-koin:koin-android:4.0.0")
             implementation("androidx.activity:activity-compose:1.9.3")
             implementation(libs.coil.network.okhttp)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services)
+            implementation(libs.googleid)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

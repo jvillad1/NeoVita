@@ -18,8 +18,20 @@ android {
         versionName = "1.0.0"
     }
     buildTypes {
-        getByName("release") { isMinifyEnabled = false }
+        // -PserverUrl=... overrides the default for either build type, e.g. for a physical
+        // device on the same LAN: ./gradlew :androidApp:assembleDebug -PserverUrl=http://<LAN-IP>:8080
+        getByName("debug") {
+            val serverUrl = (project.findProperty("serverUrl") as String?) ?: "http://10.0.2.2:8080"
+            buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
+        }
+        getByName("release") {
+            isMinifyEnabled = false
+            // Production default: the Railway-hosted NeoVita server.
+            val serverUrl = (project.findProperty("serverUrl") as String?) ?: "https://neovita.up.railway.app"
+            buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
+        }
     }
+    buildFeatures { buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
