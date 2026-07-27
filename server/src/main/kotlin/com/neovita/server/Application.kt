@@ -1,6 +1,7 @@
 package com.neovita.server
 
 import com.neovita.server.config.AppRuntimeConfig
+import com.neovita.server.config.firebaseConfigFrom
 import com.neovita.server.config.parseFeatures
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
@@ -44,7 +45,13 @@ fun Application.module() {
         features = parseFeatures(config.propertyOrNull("appConfig.features")?.getString() ?: ""),
         minVersionAndroid = config.propertyOrNull("appConfig.minVersionAndroid")?.getString()?.toIntOrNull() ?: 0,
         minVersionIos = config.propertyOrNull("appConfig.minVersionIos")?.getString()?.toIntOrNull() ?: 0,
-        maintenance = config.propertyOrNull("appConfig.maintenance")?.getString()?.toBoolean() ?: false
+        maintenance = config.propertyOrNull("appConfig.maintenance")?.getString()?.toBoolean() ?: false,
+        firebase = firebaseConfigFrom(
+            config.propertyOrNull("appConfig.firebaseApiKey")?.getString(),
+            config.propertyOrNull("appConfig.firebaseAppId")?.getString(),
+            config.propertyOrNull("appConfig.firebaseProjectId")?.getString(),
+            config.propertyOrNull("appConfig.firebaseSenderId")?.getString()
+        )
     )
     log.info("appConfig: $appConfig")
     val googleService = GoogleAuthService(httpClient, clientId = googleClientId)
