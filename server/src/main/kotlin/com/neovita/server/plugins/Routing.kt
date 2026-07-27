@@ -45,6 +45,10 @@ fun Application.configureRouting(
             screenRoutes(screenRepo)
         }
 
+        // Server-rendered pages for in-app WebView slots — outside /api, before the
+        // static catch-all.
+        webRoutes()
+
         // Serve the wasmJs web bundle (copied into resources/static by the Docker build).
         // Declared last so /health and /api take priority. Ktor 3.x doesn't register
         // the application/wasm content type by default.
