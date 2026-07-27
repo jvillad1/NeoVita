@@ -34,8 +34,11 @@ class NeoVitaMessagingService : FirebaseMessagingService() {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             target?.let { putExtra("push_target", it) }
         }
+        // Único por mensaje para que recordatorios simultáneos sin target no se
+        // reemplacen entre sí (antes colapsaban todos a un mismo hashCode de "").
+        val notificationId = message.messageId?.hashCode() ?: (title + body + System.currentTimeMillis()).hashCode()
         val pending = PendingIntent.getActivity(
-            this, (target ?: "").hashCode(), intent,
+            this, notificationId, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -48,7 +51,7 @@ class NeoVitaMessagingService : FirebaseMessagingService() {
             .build()
 
         runCatching {
-            NotificationManagerCompat.from(this).notify((target ?: "").hashCode(), notification)
+            NotificationManagerCompat.from(this).notify(notificationId, notification)
         } // sin permiso POST_NOTIFICATIONS notify lanza SecurityException en 33+: ignorar
     }
 }
