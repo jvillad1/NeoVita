@@ -1,5 +1,6 @@
 package com.neovita.app.config
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -29,9 +30,14 @@ fun ConfigGate(clientInfo: ClientInfo, content: @Composable () -> Unit) {
         }
     }
 
-    when (evaluateGate(config, clientInfo)) {
-        GateState.MAINTENANCE -> MaintenanceScreen(onRetry = { scope.launch { repo.refresh() } })
-        GateState.UPDATE_REQUIRED -> UpdateRequiredScreen()
-        GateState.NORMAL -> content()
+    // content() stays composed while gated so the user's navigation stack survives a
+    // temporary maintenance window; the gate screens are opaque and swallow input.
+    Box {
+        content()
+        when (evaluateGate(config, clientInfo)) {
+            GateState.MAINTENANCE -> MaintenanceScreen(onRetry = { scope.launch { repo.refresh() } })
+            GateState.UPDATE_REQUIRED -> UpdateRequiredScreen()
+            GateState.NORMAL -> {}
+        }
     }
 }

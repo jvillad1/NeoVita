@@ -44,6 +44,7 @@ fun Application.module() {
         minVersionIos = config.propertyOrNull("appConfig.minVersionIos")?.getString()?.toIntOrNull() ?: 0,
         maintenance = config.propertyOrNull("appConfig.maintenance")?.getString()?.toBoolean() ?: false
     )
+    log.info("appConfig: $appConfig")
     val googleService = GoogleAuthService(httpClient, clientId = googleClientId)
     val claudeService = ClaudeService(
         client = httpClient,
