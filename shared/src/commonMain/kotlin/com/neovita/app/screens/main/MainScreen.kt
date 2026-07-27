@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,6 +25,9 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.tab.*
 import com.neovita.app.navigation.tabs.*
 import com.neovita.app.ui.theme.*
+import com.neovita.shared.config.RemoteConfigRepository
+import com.neovita.shared.config.isFeatureEnabled
+import org.koin.compose.koinInject
 
 class MainScreen : Screen {
     @Composable
@@ -61,12 +66,16 @@ private data class NavItem(
 @Composable
 private fun NeoBottomBar() {
     val tabNavigator = LocalTabNavigator.current
-    val navItems = listOf(
-        NavItem(HomeTab,    "Inicio",  Icons.Filled.Home),
-        NavItem(ChatTab,    "Coach",   Icons.Filled.MailOutline),
-        NavItem(PlanTab,    "Plan",    Icons.Filled.DateRange),
-        NavItem(ProfileTab, "Perfil",  Icons.Filled.Person),
-    )
+    // "chat" is a shipped feature: default true (visible unless the server disables it).
+    val config by koinInject<RemoteConfigRepository>().config.collectAsState()
+    val navItems = buildList {
+        add(NavItem(HomeTab, "Inicio", Icons.Filled.Home))
+        if (config.isFeatureEnabled("chat", default = true)) {
+            add(NavItem(ChatTab, "Coach", Icons.Filled.MailOutline))
+        }
+        add(NavItem(PlanTab, "Plan", Icons.Filled.DateRange))
+        add(NavItem(ProfileTab, "Perfil", Icons.Filled.Person))
+    }
 
     Surface(
         color = Color.White,

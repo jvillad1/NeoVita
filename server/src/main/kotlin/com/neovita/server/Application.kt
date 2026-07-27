@@ -1,5 +1,7 @@
 package com.neovita.server
 
+import com.neovita.server.config.AppRuntimeConfig
+import com.neovita.server.config.parseFeatures
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.PlanRepository
@@ -38,6 +40,13 @@ fun Application.module() {
         expirationMs = config.property("jwt.expirationMs").getString().toLong()
     )
     val googleClientId = config.propertyOrNull("google.clientId")?.getString()
+    val appConfig = AppRuntimeConfig(
+        features = parseFeatures(config.propertyOrNull("appConfig.features")?.getString() ?: ""),
+        minVersionAndroid = config.propertyOrNull("appConfig.minVersionAndroid")?.getString()?.toIntOrNull() ?: 0,
+        minVersionIos = config.propertyOrNull("appConfig.minVersionIos")?.getString()?.toIntOrNull() ?: 0,
+        maintenance = config.propertyOrNull("appConfig.maintenance")?.getString()?.toBoolean() ?: false
+    )
+    log.info("appConfig: $appConfig")
     val googleService = GoogleAuthService(httpClient, clientId = googleClientId)
     val claudeService = ClaudeService(
         client = httpClient,
@@ -51,5 +60,5 @@ fun Application.module() {
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString()
     )
-    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, googleClientId)
+    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, googleClientId, appConfig)
 }
