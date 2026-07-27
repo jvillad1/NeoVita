@@ -1,20 +1,31 @@
 package com.neovita.app
 
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.neovita.app.android.BuildConfig
 import com.neovita.app.auth.CurrentActivityHolder
+import com.neovita.app.push.PushTargetHolder
 import com.neovita.shared.config.AppPlatform
 import com.neovita.shared.config.ClientInfo
 import com.neovita.shared.data.cache.SqlDelightLocalCache
 import com.neovita.shared.db.NeoVitaDatabase
 
 class MainActivity : ComponentActivity() {
+    private val notificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* opcional: ignorar */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CurrentActivityHolder.activity = this
+        handlePushTarget(intent)
+        if (Build.VERSION.SDK_INT >= 33) {
+            notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
         val driver = AndroidSqliteDriver(NeoVitaDatabase.Schema, this, "neovita.db")
         val cache = SqlDelightLocalCache(NeoVitaDatabase(driver))
         setContent {
@@ -24,6 +35,15 @@ class MainActivity : ComponentActivity() {
                 clientInfo = ClientInfo(AppPlatform.ANDROID, BuildConfig.VERSION_CODE)
             )
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handlePushTarget(intent)
+    }
+
+    private fun handlePushTarget(intent: Intent?) {
+        intent?.getStringExtra("push_target")?.let { PushTargetHolder.target.value = it }
     }
 
     override fun onDestroy() {
