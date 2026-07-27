@@ -1,11 +1,9 @@
 package com.neovita.app
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.neovita.app.android.BuildConfig
 import com.neovita.app.auth.CurrentActivityHolder
@@ -16,16 +14,10 @@ import com.neovita.shared.data.cache.SqlDelightLocalCache
 import com.neovita.shared.db.NeoVitaDatabase
 
 class MainActivity : ComponentActivity() {
-    private val notificationPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* opcional: ignorar */ }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CurrentActivityHolder.activity = this
         handlePushTarget(intent)
-        if (Build.VERSION.SDK_INT >= 33) {
-            notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-        }
         val driver = AndroidSqliteDriver(NeoVitaDatabase.Schema, this, "neovita.db")
         val cache = SqlDelightLocalCache(NeoVitaDatabase(driver))
         setContent {

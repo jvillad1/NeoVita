@@ -41,7 +41,10 @@ fun AppNavigation() {
         LaunchedEffect(pushTarget) {
             val target = pushTarget ?: return@LaunchedEffect
             PushTargetHolder.target.value = null
-            if (target.startsWith("https://") || (target.startsWith("/") && !target.startsWith("//"))) {
+            // El extra del intent es falsificable por otras apps (activity exportada);
+            // solo rutas relativas (páginas de nuestro propio servidor) se rutean — una
+            // URL externa nunca se renderiza bajo el chrome de NeoVita.
+            if (target.startsWith("/") && !target.startsWith("//")) {
                 navigator.push(WebContentScreen(title = "NeoVita", url = target))
             }
         }
