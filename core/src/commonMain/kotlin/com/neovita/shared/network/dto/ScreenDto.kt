@@ -22,7 +22,7 @@ import kotlinx.serialization.Serializable
     val meta: String? = null,
     val action: ActionDto? = null,
 )
-@Serializable data class ActionDto(val type: String, val target: String)  // NAVIGATE|OPEN_URL
+@Serializable data class ActionDto(val type: String, val target: String)  // NAVIGATE|OPEN_URL|OPEN_WEBVIEW
 
 object ScreenTaxonomy {
     val SECTION_TYPES = listOf("HERO_SCORE", "CARD_ROW", "CARD_LIST", "QUOTE_BANNER", "CONTENT_FEED")
