@@ -30,7 +30,8 @@ fun sharedModule(baseUrl: String, cache: LocalCache?) = module {
     single {
         HttpClient {
             // ignoreUnknownKeys: installed apps must keep working when the server (which deploys
-            // far more often) adds response fields — the core of the install-once strategy.
+            // far more often) adds response fields — core of the install-once strategy and of
+            // the SDUI schema's forward-compat.
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             // Non-2xx responses throw (so safeCall can classify 401/404 by the status
             // in the exception message, and silent successes like DELETE surface errors).

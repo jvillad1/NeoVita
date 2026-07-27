@@ -44,3 +44,15 @@ INSERT OR REPLACE INTO HealthMetrics VALUES (?,?,?,?,?,?,?);
 
 getMetrics:
 SELECT * FROM HealthMetrics WHERE userId = ?;
+
+CREATE TABLE IF NOT EXISTS cached_screen (
+    slug TEXT NOT NULL PRIMARY KEY,
+    version INTEGER NOT NULL,
+    json TEXT NOT NULL
+);
+
+upsertScreen:
+INSERT OR REPLACE INTO cached_screen(slug, version, json) VALUES (?, ?, ?);
+
+selectScreen:
+SELECT version, json FROM cached_screen WHERE slug = ?;

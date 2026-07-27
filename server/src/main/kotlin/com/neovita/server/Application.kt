@@ -5,6 +5,7 @@ import com.neovita.server.config.parseFeatures
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.PlanRepository
+import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.repositories.UserRepository
 import com.neovita.server.plugins.*
 import com.neovita.server.services.ClaudeService
@@ -31,6 +32,7 @@ fun Application.module() {
     val assessmentRepo = AssessmentRepository()
     val planRepo = PlanRepository()
     val contentRepo = ContentRepository()
+    val screenRepo = ScreenRepository()
     val jwtService = JwtService(
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString(),
@@ -58,5 +60,5 @@ fun Application.module() {
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString()
     )
-    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, googleClientId, appConfig)
+    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, googleClientId, appConfig)
 }
