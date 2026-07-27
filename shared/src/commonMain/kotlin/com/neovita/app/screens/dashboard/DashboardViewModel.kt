@@ -3,16 +3,20 @@ package com.neovita.app.screens.dashboard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import com.neovita.shared.data.cache.LocalCache
 import com.neovita.shared.domain.model.LongevityPlan
 import com.neovita.shared.domain.repository.ContentRepository
 import com.neovita.shared.domain.repository.PlanRepository
 import com.neovita.shared.domain.repository.UserRepository
+import com.neovita.shared.network.ApiService
 import com.neovita.shared.network.dto.ContentItemDto
+import com.neovita.shared.network.dto.ScreenDefinitionDto
 import com.neovita.shared.network.dto.UserDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 
 enum class ContentCategory(val label: String, val emoji: String) {
     NUTRITION("Nutrición", "🥗"),
@@ -38,7 +42,8 @@ data class DashboardState(
     val plan: LongevityPlan? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val feed: List<ContentItem> = emptyList()
+    val feed: List<ContentItem> = emptyList(),
+    val screenDef: ScreenDefinitionDto? = null,
 )
 
 private val ALL_CONTENT = listOf(
@@ -62,13 +67,15 @@ private val ALL_CONTENT = listOf(
 class DashboardViewModel(
     private val userRepo: UserRepository,
     private val planRepo: PlanRepository,
-    private val contentRepo: ContentRepository
+    private val contentRepo: ContentRepository,
+    private val apiService: ApiService,
+    private val localCache: LocalCache?,
 ) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(DashboardState())
     val state = _state.asStateFlow()
 
-    init { load() }
+    init { load(); loadScreen() }
 
     private fun load() {
         scope.launch {
@@ -84,6 +91,38 @@ class DashboardViewModel(
             _state.update { it.copy(user = user, plan = plan, isLoading = false, feed = buildFeed(plan, content)) }
         }
     }
+
+    // Load order: cache -> fetch (conditional on cached version) -> fallback null.
+    //  - New DTO from the server: use it, and re-cache it (re-serialized) under its version.
+    //  - null (304 Not Modified): the cache is still fresh — decode and use the cached json.
+    //  - Failure, or no cache and no successful fetch: screenDef stays null (renderer falls
+    //    back to DashboardFallback).
+    private fun loadScreen() {
+        scope.launch {
+            // Any cache/storage failure (corrupt DB, driver issue, etc.) degrades to
+            // network-or-fallback instead of crashing this coroutine.
+            val cached = runCatching { localCache?.getScreen("dashboard") }.getOrNull()
+            val result = apiService.getScreen("dashboard", cached?.version)
+            val def = result.fold(
+                onSuccess = { dto ->
+                    when {
+                        dto != null -> {
+                            val json = Json.encodeToString(ScreenDefinitionDto.serializer(), dto)
+                            runCatching { localCache?.cacheScreen(dto.slug, dto.version, json) }
+                            dto
+                        }
+                        cached != null -> decodeCachedScreen(cached.json)
+                        else -> null
+                    }
+                },
+                onFailure = { cached?.let { decodeCachedScreen(it.json) } }
+            )
+            _state.update { it.copy(screenDef = def) }
+        }
+    }
+
+    private fun decodeCachedScreen(json: String): ScreenDefinitionDto? =
+        runCatching { Json.decodeFromString(ScreenDefinitionDto.serializer(), json) }.getOrNull()
 
     // Surfaces content for the user's weakest pillars first
     private fun buildFeed(plan: LongevityPlan?, content: List<ContentItem>): List<ContentItem> {

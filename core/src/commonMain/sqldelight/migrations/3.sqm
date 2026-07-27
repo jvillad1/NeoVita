@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS cached_screen (
+    slug TEXT NOT NULL PRIMARY KEY,
+    version INTEGER NOT NULL,
+    json TEXT NOT NULL
+);

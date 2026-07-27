@@ -4,6 +4,7 @@ import com.neovita.shared.network.dto.*
 import com.neovita.shared.network.error.NetworkError
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.plugins.RedirectResponseException
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -50,6 +51,25 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
 
     suspend fun getContent(): Result<List<ContentItemDto>> = safeCall {
         httpClient.get("$baseUrl/content").body()
+    }
+
+    // The shared HttpClient runs with expectSuccess = true (see SharedModule.kt), so any
+    // non-2xx status -- including 304 -- is thrown by Ktor's default validator as a
+    // ResponseException before we ever get an HttpResponse back to inspect. A 304 comes
+    // back as RedirectResponseException specifically (3xx range), so we catch just that
+    // type and translate a Not Modified status into `null` (cache is still fresh).
+    // Any other status (401/404/etc.) is a different exception and rethrows unchanged,
+    // so it still reaches safeCall's existing message-based classification below.
+    suspend fun getScreen(slug: String, cachedVersion: Int? = null): Result<ScreenDefinitionDto?> = safeCall {
+        try {
+            httpClient.get("$baseUrl/screens/$slug") {
+                if (cachedVersion != null) {
+                    header(HttpHeaders.IfNoneMatch, cachedVersion.toString())
+                }
+            }.body<ScreenDefinitionDto>()
+        } catch (e: RedirectResponseException) {
+            if (e.response.status == HttpStatusCode.NotModified) null else throw e
+        }
     }
 
     // --- Content administration (EMPLOYER role; token attached by the client) ---

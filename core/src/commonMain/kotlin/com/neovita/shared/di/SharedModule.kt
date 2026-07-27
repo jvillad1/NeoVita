@@ -21,13 +21,16 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
 fun sharedModule(baseUrl: String, cache: LocalCache?) = module {
     if (cache != null) single<LocalCache> { cache }
     single {
         HttpClient {
-            install(ContentNegotiation) { json() }
+            // ignoreUnknownKeys: forward-compat del schema SDUI (y del API en general) —
+            // un campo nuevo en el DTO no debe romper clientes viejos ya instalados.
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             // Non-2xx responses throw (so safeCall can classify 401/404 by the status
             // in the exception message, and silent successes like DELETE surface errors).
             expectSuccess = true
