@@ -7,9 +7,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
+import com.neovita.app.push.PushTargetHolder
 import com.neovita.app.screens.login.LoginScreen
 import com.neovita.app.screens.main.MainScreen
 import com.neovita.app.screens.onboarding.OnboardingScreen
+import com.neovita.app.screens.web.WebContentScreen
 import com.neovita.shared.session.SessionManager
 
 @Composable
@@ -32,6 +34,15 @@ fun AppNavigation() {
         LaunchedEffect(loggedIn) {
             if (!loggedIn && navigator.lastItem !is LoginScreen) {
                 navigator.replaceAll(LoginScreen())
+            }
+        }
+        // A tapped push can carry a web target; same rules as SDUI OPEN_WEBVIEW.
+        val pushTarget by PushTargetHolder.target.collectAsState()
+        LaunchedEffect(pushTarget) {
+            val target = pushTarget ?: return@LaunchedEffect
+            PushTargetHolder.target.value = null
+            if (target.startsWith("https://") || (target.startsWith("/") && !target.startsWith("//"))) {
+                navigator.push(WebContentScreen(title = "NeoVita", url = target))
             }
         }
         CurrentScreen()
