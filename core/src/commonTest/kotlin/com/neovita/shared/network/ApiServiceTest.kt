@@ -18,6 +18,11 @@ class ApiServiceTest {
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
+            "/config" -> respond(
+                content = """{"googleClientId":"web-client-id-123"}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
             else -> respond("Not Found", HttpStatusCode.NotFound)
         }
     }
@@ -33,5 +38,11 @@ class ApiServiceTest {
         val result = apiService.authenticateWithGoogle("any-token")
         assertTrue(result.isSuccess)
         assertEquals("jwt-abc", result.getOrNull()?.token)
+    }
+
+    @Test fun `getConfig returns google client id`() = runTest {
+        val result = apiService.getConfig()
+        assertTrue(result.isSuccess)
+        assertEquals("web-client-id-123", result.getOrNull()?.googleClientId)
     }
 }

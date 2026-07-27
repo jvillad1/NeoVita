@@ -12,6 +12,9 @@
 </head>
 <body>
     <canvas id="ComposeTarget"></canvas>
+    <!-- Optional override; when empty the app fetches the client ID from /api/config -->
+    <script>window.NEOVITA_GOOGLE_CLIENT_ID = "";</script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="composeApp.js"></script>
 </body>
 </html>

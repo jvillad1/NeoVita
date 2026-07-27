@@ -23,7 +23,8 @@ fun Application.configureRouting(
     planRepo: PlanRepository,
     claudeService: ClaudeService,
     contentRepo: ContentRepository,
-    screenRepo: ScreenRepository
+    screenRepo: ScreenRepository,
+    googleClientId: String? = null
 ) {
     routing {
         get("/health") { call.respondText("OK") }
@@ -31,6 +32,7 @@ fun Application.configureRouting(
         // All REST endpoints are namespaced under /api so the wasmJs web app can be
         // served same-origin from "/" without path collisions.
         route("/api") {
+            configRoutes(googleClientId)
             authRoutes(googleAuthService, jwtService, userRepo)
             userRoutes(userRepo)
             assessmentRoutes(assessmentRepo)
