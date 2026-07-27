@@ -54,4 +54,13 @@ class SqlDelightLocalCache(private val db: NeoVitaDatabase) : LocalCache {
             updatedAt = Clock.System.now().toEpochMilliseconds(),
         )
     }
+
+    override fun cacheScreen(slug: String, version: Int, json: String) {
+        db.neoVitaQueries.upsertScreen(slug, version.toLong(), json)
+    }
+
+    override fun getScreen(slug: String): CachedScreen? =
+        db.neoVitaQueries.selectScreen(slug).executeAsOneOrNull()?.let {
+            CachedScreen(it.version.toInt(), it.json)
+        }
 }
