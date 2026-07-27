@@ -29,6 +29,7 @@ dependencies {
     implementation(libs.kotlinx.datetime)
     implementation(libs.logback)
     implementation(libs.java.jwt)
+    implementation(libs.firebase.admin)
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlin.test)
