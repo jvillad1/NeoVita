@@ -22,11 +22,11 @@ import kotlinx.serialization.Serializable
     val meta: String? = null,
     val action: ActionDto? = null,
 )
-@Serializable data class ActionDto(val type: String, val target: String)  // NAVIGATE|OPEN_URL
+@Serializable data class ActionDto(val type: String, val target: String)  // NAVIGATE|OPEN_URL|OPEN_WEBVIEW
 
 object ScreenTaxonomy {
     val SECTION_TYPES = listOf("HERO_SCORE", "CARD_ROW", "CARD_LIST", "QUOTE_BANNER", "CONTENT_FEED")
-    val ACTION_TYPES = listOf("NAVIGATE", "OPEN_URL")
+    val ACTION_TYPES = listOf("NAVIGATE", "OPEN_URL", "OPEN_WEBVIEW")
     val NAVIGATE_TARGETS = listOf("home", "chat", "plan", "profile")
 }
 
@@ -43,5 +43,9 @@ fun renderableSections(def: ScreenDefinitionDto): List<SectionDto> =
 private fun isValidAction(a: ActionDto): Boolean = when (a.type) {
     "NAVIGATE" -> a.target in ScreenTaxonomy.NAVIGATE_TARGETS
     "OPEN_URL" -> a.target.startsWith("https://")
+    // In-app WebView: https absoluto, o ruta same-origin ("/x" pero nunca "//host", que
+    // resolvería a un origen externo).
+    "OPEN_WEBVIEW" -> a.target.startsWith("https://") ||
+        (a.target.startsWith("/") && !a.target.startsWith("//"))
     else -> false
 }
