@@ -49,6 +49,9 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
+            // Needed directly here (not just transitively via :core) so DashboardViewModel
+            // can (de)serialize ScreenDefinitionDto when writing/reading the local cache.
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.coil.compose)
             // api (not implementation): App()/sharedModule() expose core types
             // (LocalCache) in their public signatures, so consumers (webApp, androidApp,
