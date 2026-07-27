@@ -8,7 +8,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.neovita.shared.session.SessionManager
 
 @Composable
-actual fun PlatformWebView(url: String, modifier: Modifier) {
+actual fun PlatformWebView(url: String, attachSession: Boolean, modifier: Modifier) {
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -16,9 +16,9 @@ actual fun PlatformWebView(url: String, modifier: Modifier) {
                 settings.javaScriptEnabled = true
                 // Keep navigation inside the WebView instead of launching the browser.
                 webViewClient = WebViewClient()
-                val headers = SessionManager.token
-                    ?.let { mapOf("Authorization" to "Bearer $it") }
-                    ?: emptyMap()
+                val headers = if (attachSession) {
+                    SessionManager.token?.let { mapOf("Authorization" to "Bearer $it") } ?: emptyMap()
+                } else emptyMap()
                 loadUrl(url, headers)
             }
         }

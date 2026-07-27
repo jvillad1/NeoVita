@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 private fun openInNewTab(url: String): Unit = js("{ window.open(url, '_blank'); }")
 
 @Composable
-actual fun PlatformWebView(url: String, modifier: Modifier) {
+actual fun PlatformWebView(url: String, attachSession: Boolean, modifier: Modifier) {
     // The wasm app already runs in a browser: open the page in a new tab (popup blockers
     // may require the explicit button if the automatic attempt is suppressed).
     LaunchedEffect(url) { openInNewTab(url) }
