@@ -26,7 +26,7 @@ fun Application.configureRouting(
     contentRepo: ContentRepository,
     screenRepo: ScreenRepository,
     googleClientId: String? = null,
-    appConfig: AppRuntimeConfig = AppRuntimeConfig(emptyMap(), 0, 0, false)
+    appConfig: AppRuntimeConfig = AppRuntimeConfig(emptyMap(), 0, 0, false, null)
 ) {
     routing {
         get("/health") { call.respondText("OK") }
