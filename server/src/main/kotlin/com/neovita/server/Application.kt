@@ -5,6 +5,7 @@ import com.neovita.server.config.firebaseConfigFrom
 import com.neovita.server.config.parseFeatures
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
+import com.neovita.server.db.repositories.DeviceTokenRepository
 import com.neovita.server.db.repositories.PlanRepository
 import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.repositories.UserRepository
@@ -34,6 +35,7 @@ fun Application.module() {
     val planRepo = PlanRepository()
     val contentRepo = ContentRepository()
     val screenRepo = ScreenRepository()
+    val deviceTokenRepo = DeviceTokenRepository()
     val jwtService = JwtService(
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString(),
@@ -67,5 +69,5 @@ fun Application.module() {
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString()
     )
-    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, googleClientId, appConfig)
+    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, deviceTokenRepo, googleClientId, appConfig)
 }
