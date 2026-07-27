@@ -54,6 +54,7 @@ fun sharedModule(baseUrl: String, cache: LocalCache?) = module {
     }
     single { ApiService(baseUrl, get()) }
     single { RemoteConfigRepository(get()) }
+    single { ServerOrigin(baseUrl.removeSuffix("/api")) }
     single<AssessmentRepository> { AssessmentRepositoryImpl(get(), getOrNull()) }
     single<PlanRepository> { PlanRepositoryImpl(get(), getOrNull()) }
     single<UserRepository> { UserRepositoryImpl(get()) }
