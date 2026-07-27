@@ -42,6 +42,7 @@ fun SduiRenderer(
     feed: List<ContentItem>,
     onNavigateTab: (String) -> Unit,
     onOpenUrl: (String) -> Unit,
+    onOpenWebView: (String, String) -> Unit,
 ) {
     Box(Modifier.fillMaxSize().background(NeoDarkBg)) {
         LazyColumn(
@@ -56,6 +57,7 @@ fun SduiRenderer(
                         feed = feed,
                         onNavigateTab = onNavigateTab,
                         onOpenUrl = onOpenUrl,
+                        onOpenWebView = onOpenWebView,
                     )
                 }
             }
@@ -70,6 +72,7 @@ private fun SduiSection(
     feed: List<ContentItem>,
     onNavigateTab: (String) -> Unit,
     onOpenUrl: (String) -> Unit,
+    onOpenWebView: (String, String) -> Unit,
 ) {
     val onCardClick: (CardDto) -> (() -> Unit)? = { card ->
         card.action?.let { action ->
@@ -77,6 +80,7 @@ private fun SduiSection(
                 when (action.type) {
                     "NAVIGATE" -> onNavigateTab(action.target)
                     "OPEN_URL" -> onOpenUrl(action.target)
+                    "OPEN_WEBVIEW" -> onOpenWebView(card.title, action.target)
                 }
             }
         }
