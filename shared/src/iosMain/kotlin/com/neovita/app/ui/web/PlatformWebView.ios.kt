@@ -12,15 +12,17 @@ import platform.WebKit.WKWebView
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
-actual fun PlatformWebView(url: String, modifier: Modifier) {
+actual fun PlatformWebView(url: String, attachSession: Boolean, modifier: Modifier) {
     UIKitView(
         modifier = modifier,
         factory = {
             val webView = WKWebView()
             NSURL.URLWithString(url)?.let { nsUrl ->
                 val request = NSMutableURLRequest(uRL = nsUrl)
-                SessionManager.token?.let {
-                    request.setValue("Bearer $it", forHTTPHeaderField = "Authorization")
+                if (attachSession) {
+                    SessionManager.token?.let {
+                        request.setValue("Bearer $it", forHTTPHeaderField = "Authorization")
+                    }
                 }
                 webView.loadRequest(request)
             }

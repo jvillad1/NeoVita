@@ -28,7 +28,10 @@ data class WebContentScreen(val title: String, val url: String) : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val origin = koinInject<ServerOrigin>().value
-        val resolvedUrl = if (url.startsWith("http")) url else origin + url
+        val resolvedUrl = if (url.startsWith("https://")) url else origin + url
+        // Solo los destinos same-origin (relativos al servidor propio) llevan el JWT; una página
+        // externa https nunca debe recibir el token de sesión.
+        val isSameOrigin = !url.startsWith("https://")
 
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
@@ -39,7 +42,7 @@ data class WebContentScreen(val title: String, val url: String) : Screen {
                     }
                 }
             )
-            PlatformWebView(resolvedUrl, Modifier.fillMaxWidth().weight(1f))
+            PlatformWebView(resolvedUrl, attachSession = isSameOrigin, modifier = Modifier.fillMaxWidth().weight(1f))
         }
     }
 }

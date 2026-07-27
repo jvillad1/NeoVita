@@ -8,6 +8,9 @@ import io.ktor.server.routing.*
 // new page here + pointing an SDUI card at it ships a "new screen" to installed apps
 // with zero store releases. Public by design; pages needing the user read the
 // Authorization header the WebView attaches on its initial request.
+// NOTE: this demo only checks that the header is PRESENT. Any real /web page that returns
+// user data must actually verify the JWT (same auth plugin/validation as the rest of the
+// API) — never trust "Bearer " presence alone as proof of an authenticated user.
 fun Route.webRoutes() {
     get("/web/demo") {
         val hasSession = call.request.headers[HttpHeaders.Authorization]

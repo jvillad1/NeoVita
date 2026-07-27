@@ -77,6 +77,11 @@ in the next planned release.
 Scope guard: webview slots are for **secondary/content surfaces**, not core flows
 (login, assessment, plan, chat stay native).
 
+> **2026-07-27 amendment:** per user decision, entries come from the SDUI `OPEN_WEBVIEW`
+> action (PR #7 screens infra) instead of a `webScreens[]` list in `/api/config`. Also, the
+> session header is only attached to same-origin targets — an external https page never
+> receives the session JWT.
+
 ### 4. Irreducibly native capabilities, shipped once, designed generically
 
 - **Native Google Sign-In** (today `TODO()` on Android/iOS — without it native apps are
