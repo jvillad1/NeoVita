@@ -65,6 +65,7 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services)
             implementation(libs.googleid)
+            implementation(libs.firebase.messaging)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

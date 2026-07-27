@@ -23,6 +23,7 @@ class ApiServiceTest {
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
+            "/devices/token" -> respond("", HttpStatusCode.NoContent)
             else -> respond("Not Found", HttpStatusCode.NotFound)
         }
     }
@@ -50,5 +51,9 @@ class ApiServiceTest {
         val firebase = apiService.getConfig().getOrNull()?.firebase
         assertEquals("neovita-x", firebase?.projectId)
         assertEquals("99", firebase?.senderId)
+    }
+
+    @Test fun `registerDeviceToken posts and succeeds`() = runTest {
+        assertTrue(apiService.registerDeviceToken("fcm-abc", "android").isSuccess)
     }
 }
