@@ -1,5 +1,6 @@
 package com.neovita.shared.di
 
+import com.neovita.shared.config.RemoteConfigRepository
 import com.neovita.shared.data.cache.LocalCache
 import com.neovita.shared.data.repository.AssessmentRepositoryImpl
 import com.neovita.shared.data.repository.ChatRepositoryImpl
@@ -28,8 +29,9 @@ fun sharedModule(baseUrl: String, cache: LocalCache?) = module {
     if (cache != null) single<LocalCache> { cache }
     single {
         HttpClient {
-            // ignoreUnknownKeys: forward-compat del schema SDUI (y del API en general) —
-            // un campo nuevo en el DTO no debe romper clientes viejos ya instalados.
+            // ignoreUnknownKeys: installed apps must keep working when the server (which deploys
+            // far more often) adds response fields — core of the install-once strategy and of
+            // the SDUI schema's forward-compat.
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             // Non-2xx responses throw (so safeCall can classify 401/404 by the status
             // in the exception message, and silent successes like DELETE surface errors).
@@ -51,6 +53,7 @@ fun sharedModule(baseUrl: String, cache: LocalCache?) = module {
         }
     }
     single { ApiService(baseUrl, get()) }
+    single { RemoteConfigRepository(get()) }
     single<AssessmentRepository> { AssessmentRepositoryImpl(get(), getOrNull()) }
     single<PlanRepository> { PlanRepositoryImpl(get(), getOrNull()) }
     single<UserRepository> { UserRepositoryImpl(get()) }
