@@ -6,6 +6,7 @@ import com.neovita.server.config.parseFeatures
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.DeviceTokenRepository
+import com.neovita.server.db.repositories.HealthRepository
 import com.neovita.server.db.repositories.PlanRepository
 import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.repositories.UserRepository
@@ -32,7 +33,8 @@ fun Application.module() {
         install(ContentNegotiation) { json() }
     }
     val userRepo = UserRepository()
-    val assessmentRepo = AssessmentRepository()
+    val healthRepo = HealthRepository()
+    val assessmentRepo = AssessmentRepository(healthRepo)
     val planRepo = PlanRepository()
     val contentRepo = ContentRepository()
     val screenRepo = ScreenRepository()
@@ -71,5 +73,5 @@ fun Application.module() {
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString()
     )
-    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, deviceTokenRepo, googleClientId, appConfig, pushService)
+    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, deviceTokenRepo, googleClientId, appConfig, pushService, healthRepo)
 }

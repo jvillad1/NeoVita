@@ -8,7 +8,9 @@ object AssessmentsTable : Table("assessments") {
     val createdAt = long("created_at")          // epochMilliseconds
     val exerciseFrequency = varchar("exercise_frequency", 50)
     val exerciseType = varchar("exercise_type", 100)
-    val sleepHours = varchar("sleep_hours", 10)  // "4-6"|"6-8"|"8+"
+    // Guarda la etiqueta que muestra la app, no un código: la más larga hoy es
+    // "Menos de 5 horas" (16). Con varchar(10) esa opción reventaba el insert con 500.
+    val sleepHours = varchar("sleep_hours", 64)
     val sleepQuality = integer("sleep_quality")   // 1-10
     val mainGoal = varchar("main_goal", 255)
     override val primaryKey = PrimaryKey(id)
