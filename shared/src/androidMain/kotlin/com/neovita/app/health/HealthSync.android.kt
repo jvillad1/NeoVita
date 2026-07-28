@@ -42,8 +42,13 @@ actual class HealthSyncClient actual constructor() {
             .getOrDefault(emptySet())
         if (granted.containsAll(READ_PERMISSIONS)) return true
         val launcher = HealthPermissionLauncher.request ?: return false
-        return suspendCancellableCoroutine { cont ->
-            launcher(READ_PERMISSIONS) { ok -> cont.resume(ok) }
+        return runCatching {
+            suspendCancellableCoroutine { cont ->
+                launcher(READ_PERMISSIONS) { ok -> if (cont.isActive) cont.resume(ok) }
+            }
+        }.getOrElse {
+            Log.w("NeoVitaHealth", "No se pudo solicitar permisos de salud", it)
+            false
         }
     }
 
