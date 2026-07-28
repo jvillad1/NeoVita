@@ -1,5 +1,6 @@
 package com.neovita.shared.network
 
+import com.neovita.shared.network.dto.DailyHealthMetricDto
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -24,6 +25,12 @@ class ApiServiceTest {
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
             "/devices/token" -> respond("", HttpStatusCode.NoContent)
+            "/health/metrics" -> respond("", HttpStatusCode.NoContent)
+            "/health/summary" -> respond(
+                content = """{"avgDailySteps":9000,"avgSleepMinutes":430,"daysWithData":5}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
             else -> respond("Not Found", HttpStatusCode.NotFound)
         }
     }
@@ -55,5 +62,18 @@ class ApiServiceTest {
 
     @Test fun `registerDeviceToken posts and succeeds`() = runTest {
         assertTrue(apiService.registerDeviceToken("fcm-abc", "android").isSuccess)
+    }
+
+    @Test fun `uploadHealthMetrics posts and succeeds`() = runTest {
+        val result = apiService.uploadHealthMetrics(
+            listOf(DailyHealthMetricDto(date = "2026-07-26", steps = 9000))
+        )
+        assertTrue(result.isSuccess)
+    }
+
+    @Test fun `getHealthSummary parses the averages`() = runTest {
+        val summary = apiService.getHealthSummary().getOrNull()
+        assertEquals(9000, summary?.avgDailySteps)
+        assertEquals(5, summary?.daysWithData)
     }
 }
