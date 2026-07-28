@@ -7,5 +7,5 @@ package com.neovita.shared.domain.model
 data class HealthSummary(
     val avgDailySteps: Int? = null,
     val avgSleepMinutes: Int? = null,
-    val restingHeartRate: Int? = null
+    val avgHeartRate: Int? = null
 )

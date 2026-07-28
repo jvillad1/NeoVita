@@ -5,11 +5,13 @@ import com.neovita.shared.domain.model.HealthSummary
 import com.neovita.shared.network.dto.DailyHealthMetricDto
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
+import java.time.LocalDate
 
 class HealthRepository {
 
@@ -22,7 +24,7 @@ class HealthRepository {
             }) {
                 it[steps] = m.steps
                 it[sleepMinutes] = m.sleepMinutes
-                it[restingHeartRate] = m.restingHeartRate
+                it[avgHeartRate] = m.avgHeartRate
                 it[updatedAt] = now
             }
             if (updated == 0) {
@@ -31,17 +33,22 @@ class HealthRepository {
                     it[date] = m.date
                     it[steps] = m.steps
                     it[sleepMinutes] = m.sleepMinutes
-                    it[restingHeartRate] = m.restingHeartRate
+                    it[avgHeartRate] = m.avgHeartRate
                     it[updatedAt] = now
                 }
             }
         }
     }
 
-    /** Medias de los [days] días más recientes con datos. Campos sin ninguna medida quedan null. */
+    // Ventana de "reciente": datos viejos no deben seguir sobrescribiendo un cuestionario
+    // reciente; sin datos recientes el score vuelve al cuestionario. `date` es un string ISO
+    // "YYYY-MM-DD", así que la comparación lexicográfica con el corte equivale a comparar fechas.
+    private fun recencyCutoff(): String = LocalDate.now().minusDays(14).toString()
+
+    /** Medias de los [days] días más recientes (dentro de la ventana de reciente) con datos. */
     fun summary(userId: String, days: Int = 7): HealthSummary = transaction {
         val rows = HealthMetricsTable.selectAll()
-            .where { HealthMetricsTable.userId eq userId }
+            .where { (HealthMetricsTable.userId eq userId) and (HealthMetricsTable.date greaterEq recencyCutoff()) }
             .orderBy(HealthMetricsTable.date, SortOrder.DESC)
             .limit(days)
             .toList()
@@ -49,13 +56,13 @@ class HealthRepository {
         HealthSummary(
             avgDailySteps = avg(rows.mapNotNull { it[HealthMetricsTable.steps] }),
             avgSleepMinutes = avg(rows.mapNotNull { it[HealthMetricsTable.sleepMinutes] }),
-            restingHeartRate = avg(rows.mapNotNull { it[HealthMetricsTable.restingHeartRate] })
+            avgHeartRate = avg(rows.mapNotNull { it[HealthMetricsTable.avgHeartRate] })
         )
     }
 
     fun daysWithData(userId: String, days: Int = 7): Int = transaction {
         HealthMetricsTable.selectAll()
-            .where { HealthMetricsTable.userId eq userId }
+            .where { (HealthMetricsTable.userId eq userId) and (HealthMetricsTable.date greaterEq recencyCutoff()) }
             .orderBy(HealthMetricsTable.date, SortOrder.DESC)
             .limit(days)
             .count().toInt()

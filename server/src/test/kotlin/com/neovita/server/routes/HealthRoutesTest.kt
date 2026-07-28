@@ -11,6 +11,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.config.*
 import io.ktor.server.testing.*
+import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -35,8 +36,8 @@ class HealthRoutesTest {
 
     private val twoDays = """
         {"metrics":[
-          {"date":"2026-07-25","steps":8000,"sleepMinutes":420,"restingHeartRate":60},
-          {"date":"2026-07-26","steps":12000,"sleepMinutes":480,"restingHeartRate":58}
+          {"date":"2026-07-25","steps":8000,"sleepMinutes":420,"avgHeartRate":60},
+          {"date":"2026-07-26","steps":12000,"sleepMinutes":480,"avgHeartRate":58}
         ]}
     """.trimIndent()
 
@@ -145,5 +146,102 @@ class HealthRoutesTest {
 
         assertTrue(before.contains("\"exercise\":40"), "declarado: $before")
         assertTrue(after.contains("\"exercise\":100"), "medido: $after")
+    }
+
+    @Test
+    fun `malformed date is rejected with 400`() = testApplication {
+        environment { config = testConfig("health_test_bad_date") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken("user-bad-date", "USER")
+
+        val response = client.post("/api/health/metrics") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"metrics":[{"date":"2026/07/25","steps":1000}]}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("INVALID_METRICS"), response.bodyAsText())
+    }
+
+    @Test
+    fun `far-future date is rejected with 400`() = testApplication {
+        environment { config = testConfig("health_test_future_date") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken("user-future-date", "USER")
+
+        val response = client.post("/api/health/metrics") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"metrics":[{"date":"2099-01-01","steps":1000}]}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("INVALID_METRICS"), response.bodyAsText())
+    }
+
+    @Test
+    fun `steps out of range is rejected with 400`() = testApplication {
+        environment { config = testConfig("health_test_bad_steps") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken("user-bad-steps", "USER")
+
+        val response = client.post("/api/health/metrics") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"metrics":[{"date":"2026-07-26","steps":300000}]}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("INVALID_METRICS"), response.bodyAsText())
+    }
+
+    @Test
+    fun `more than 60 entries is rejected with 400`() = testApplication {
+        environment { config = testConfig("health_test_too_many") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken("user-too-many", "USER")
+
+        val entries = (1..61).joinToString(",") { i ->
+            val date = LocalDate.now().minusDays(i.toLong())
+            """{"date":"$date","steps":1000}"""
+        }
+        val response = client.post("/api/health/metrics") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"metrics":[$entries]}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("INVALID_METRICS"), response.bodyAsText())
+    }
+
+    @Test
+    fun `stale data outside the recency window is ignored by the summary`() = testApplication {
+        environment { config = testConfig("health_test_stale") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken("user-stale", "USER")
+        // Dentro de la ventana de subida (<= 30 días) pero fuera de la ventana de "reciente"
+        // que usa summary()/daysWithData() (<= 14 días) — así se prueba el filtro de esa capa,
+        // no el de validate().
+        val staleDate = LocalDate.now().minusDays(20)
+
+        val upload = client.post("/api/health/metrics") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"metrics":[{"date":"$staleDate","steps":9000}]}""")
+        }
+        assertEquals(HttpStatusCode.NoContent, upload.status)
+
+        val summary = client.get("/api/health/summary") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }.bodyAsText()
+        assertTrue(summary.contains("\"daysWithData\":0"), summary)
     }
 }
