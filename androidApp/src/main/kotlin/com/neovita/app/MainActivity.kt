@@ -18,16 +18,17 @@ import com.neovita.shared.db.NeoVitaDatabase
 class MainActivity : ComponentActivity() {
     private val healthPermissions =
         registerForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
-            pendingHealthCallback?.invoke(granted.isNotEmpty())
-            pendingHealthCallback = null
+            // Un otorgamiento parcial (p.ej. 1 de 3 permisos) también llega aquí como true;
+            // sync() vuelve a validar con containsAll antes de leer nada, así que es seguro.
+            HealthPermissionLauncher.deliver(granted.isNotEmpty())
         }
-    private var pendingHealthCallback: ((Boolean) -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CurrentActivityHolder.activity = this
+        HealthPermissionLauncher.owner = this
         HealthPermissionLauncher.request = { permissions, callback ->
-            pendingHealthCallback = callback
+            HealthPermissionLauncher.setPending(callback)
             healthPermissions.launch(permissions)
         }
         handlePushTarget(intent)
@@ -53,7 +54,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         if (CurrentActivityHolder.activity === this) CurrentActivityHolder.activity = null
-        HealthPermissionLauncher.request = null
+        if (HealthPermissionLauncher.owner === this) {
+            HealthPermissionLauncher.owner = null
+            HealthPermissionLauncher.request = null
+        }
         super.onDestroy()
     }
 }
