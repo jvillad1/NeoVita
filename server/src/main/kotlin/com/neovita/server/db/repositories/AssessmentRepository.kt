@@ -15,7 +15,7 @@ data class AssessmentEntity(
     val scores: PillarScoresDto
 )
 
-class AssessmentRepository {
+class AssessmentRepository(private val healthRepository: HealthRepository? = null) {
     private val calculateScores = CalculateScoresUseCase()
     fun save(
         userId: String, frequency: String, type: String,
@@ -23,7 +23,10 @@ class AssessmentRepository {
     ): AssessmentEntity {
         val id = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
-        val scores = calculateScores(frequency, type, sleepHours, sleepQuality).toDto()
+        val scores = calculateScores(
+            frequency, type, sleepHours, sleepQuality,
+            health = healthRepository?.summary(userId)
+        ).toDto()
         transaction {
             AssessmentsTable.insert {
                 it[AssessmentsTable.id] = id
@@ -51,14 +54,16 @@ class AssessmentRepository {
         val type = this[AssessmentsTable.exerciseType]
         val sh = this[AssessmentsTable.sleepHours]
         val sq = this[AssessmentsTable.sleepQuality]
+        val uid = this[AssessmentsTable.userId]
+        val scores = calculateScores(freq, type, sh, sq, health = healthRepository?.summary(uid)).toDto()
         return AssessmentEntity(
             id = this[AssessmentsTable.id],
-            userId = this[AssessmentsTable.userId],
+            userId = uid,
             createdAt = this[AssessmentsTable.createdAt],
             exerciseFrequency = freq, exerciseType = type,
             sleepHours = sh, sleepQuality = sq,
             mainGoal = this[AssessmentsTable.mainGoal],
-            scores = calculateScores(freq, type, sh, sq).toDto()
+            scores = scores
         )
     }
 }
