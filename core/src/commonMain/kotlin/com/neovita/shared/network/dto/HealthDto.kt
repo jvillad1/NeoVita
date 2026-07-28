@@ -11,7 +11,8 @@ data class DailyHealthMetricDto(
     val date: String,                       // ISO-8601 "YYYY-MM-DD" (día local del dispositivo)
     val steps: Int? = null,
     val sleepMinutes: Int? = null,
-    val restingHeartRate: Int? = null
+    // Es la media del día (HeartRateRecord.BPM_AVG), no la frecuencia en reposo.
+    val avgHeartRate: Int? = null
 )
 
 @Serializable
@@ -22,7 +23,7 @@ data class HealthUploadRequest(val metrics: List<DailyHealthMetricDto> = emptyLi
 data class HealthSummaryDto(
     val avgDailySteps: Int? = null,
     val avgSleepMinutes: Int? = null,
-    val restingHeartRate: Int? = null,
+    val avgHeartRate: Int? = null,
     // Always encoded even at its default (0): the server's JSON config skips fields equal to
     // their declared default, so an all-empty summary would otherwise serialize as "{}" and
     // the client couldn't distinguish "no data yet" from "field missing".

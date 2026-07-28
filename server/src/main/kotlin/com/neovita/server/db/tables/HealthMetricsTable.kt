@@ -7,7 +7,7 @@ object HealthMetricsTable : Table("health_metrics") {
     val date = varchar("metric_date", 10)          // "YYYY-MM-DD"
     val steps = integer("steps").nullable()
     val sleepMinutes = integer("sleep_minutes").nullable()
-    val restingHeartRate = integer("resting_heart_rate").nullable()
+    val avgHeartRate = integer("avg_heart_rate").nullable()
     val updatedAt = long("updated_at")
     override val primaryKey = PrimaryKey(userId, date)
 }
