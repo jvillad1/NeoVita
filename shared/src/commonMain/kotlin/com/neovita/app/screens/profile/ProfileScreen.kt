@@ -26,13 +26,18 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.AsyncImage
+import com.neovita.app.health.HealthSyncClient
+import com.neovita.app.health.HealthSyncState
 import com.neovita.app.screens.login.LoginScreen
 import com.neovita.app.screens.admin.ContentAdminScreen
 import com.neovita.app.screens.assessment.AssessmentScreen
 import com.neovita.app.ui.assets.profileAvatarModel
 import com.neovita.app.ui.theme.*
+import com.neovita.shared.config.RemoteConfigRepository
+import com.neovita.shared.config.isFeatureEnabled
 import com.neovita.shared.data.cache.LocalCache
 import com.neovita.shared.domain.repository.UserRepository
+import com.neovita.shared.network.ApiService
 import com.neovita.shared.network.dto.UserDto
 import com.neovita.shared.session.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -322,6 +327,41 @@ class ProfileScreen : Screen {
                         onClick = { navigator.parent?.push(AssessmentScreen()) }
                     )
                     HorizontalDivider(color = NeoDarkSurface2)
+                    // "healthSync" nace apagado: la entrada solo aparece cuando el servidor
+                    // la enciende (ship dormant), y leer datos siempre lo inicia la usuaria.
+                    val healthConfig by koinInject<RemoteConfigRepository>().config.collectAsState()
+                    if (healthConfig.isFeatureEnabled("healthSync", default = false)) {
+                        val healthApiService = koinInject<ApiService>()
+                        val healthClient = remember { HealthSyncClient() }
+                        val healthScope = rememberCoroutineScope()
+                        var healthState by remember { mutableStateOf<HealthSyncState?>(null) }
+                        val healthLabel = when (healthState) {
+                            null -> "Conectar datos de salud"
+                            HealthSyncState.SYNCING -> "Sincronizando…"
+                            HealthSyncState.SYNCED -> "Datos de salud sincronizados"
+                            HealthSyncState.NEEDS_PERMISSION -> "Permiso de salud pendiente"
+                            HealthSyncState.UNAVAILABLE -> "Health Connect no disponible"
+                            HealthSyncState.ERROR -> "No se pudo sincronizar — reintentar"
+                        }
+                        SettingsItem(
+                            icon = "❤️",
+                            title = healthLabel,
+                            onClick = {
+                                if (healthState == HealthSyncState.SYNCING) return@SettingsItem
+                                healthScope.launch {
+                                    healthState = HealthSyncState.SYNCING
+                                    healthState = if (!healthClient.isAvailable()) {
+                                        HealthSyncState.UNAVAILABLE
+                                    } else if (!healthClient.requestPermissions()) {
+                                        HealthSyncState.NEEDS_PERMISSION
+                                    } else {
+                                        healthClient.sync(healthApiService)
+                                    }
+                                }
+                            }
+                        )
+                        HorizontalDivider(color = NeoDarkSurface2)
+                    }
                     // Content administration — only for EMPLOYER (admin) accounts.
                     if (state.user?.role == "EMPLOYER") {
                         SettingsItem(
