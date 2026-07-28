@@ -67,6 +67,7 @@ kotlin {
             implementation(libs.googleid)
             implementation(libs.firebase.messaging)
             implementation(libs.androidx.core.ktx)
+            implementation(libs.health.connect.client)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

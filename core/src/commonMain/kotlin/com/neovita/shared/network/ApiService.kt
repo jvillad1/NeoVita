@@ -36,6 +36,18 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
         Unit
     }
 
+    suspend fun uploadHealthMetrics(metrics: List<DailyHealthMetricDto>): Result<Unit> = safeCall {
+        httpClient.post("$baseUrl/health/metrics") {
+            contentType(ContentType.Application.Json)
+            setBody(HealthUploadRequest(metrics))
+        }
+        Unit
+    }
+
+    suspend fun getHealthSummary(): Result<HealthSummaryDto> = safeCall {
+        httpClient.get("$baseUrl/health/summary").body()
+    }
+
     suspend fun getMe(): Result<UserDto> = safeCall {
         httpClient.get("$baseUrl/users/me").body()
     }

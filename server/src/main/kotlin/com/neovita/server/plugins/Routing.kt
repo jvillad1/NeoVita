@@ -4,6 +4,7 @@ import com.neovita.server.config.AppRuntimeConfig
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.DeviceTokenRepository
+import com.neovita.server.db.repositories.HealthRepository
 import com.neovita.server.db.repositories.PlanRepository
 import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.repositories.UserRepository
@@ -30,7 +31,8 @@ fun Application.configureRouting(
     deviceTokenRepo: DeviceTokenRepository,
     googleClientId: String? = null,
     appConfig: AppRuntimeConfig = AppRuntimeConfig(emptyMap(), 0, 0, false, null),
-    pushService: PushService = PushService(null)
+    pushService: PushService = PushService(null),
+    healthRepo: HealthRepository = HealthRepository()
 ) {
     routing {
         get("/health") { call.respondText("OK") }
@@ -49,6 +51,7 @@ fun Application.configureRouting(
             screenRoutes(screenRepo)
             deviceRoutes(deviceTokenRepo)
             pushRoutes(pushService, deviceTokenRepo, userRepo)
+            healthRoutes(healthRepo)
         }
 
         // Server-rendered pages for in-app WebView slots — outside /api, before the
