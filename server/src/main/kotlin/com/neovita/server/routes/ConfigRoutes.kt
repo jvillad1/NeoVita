@@ -17,7 +17,8 @@ fun Route.configRoutes(googleClientId: String?, appConfig: AppRuntimeConfig) {
                     android = appConfig.minVersionAndroid,
                     ios = appConfig.minVersionIos
                 ),
-                maintenance = appConfig.maintenance
+                maintenance = appConfig.maintenance,
+                firebase = appConfig.firebase
             )
         )
     }

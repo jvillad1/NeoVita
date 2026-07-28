@@ -19,10 +19,11 @@ class ApiServiceTest {
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
             "/config" -> respond(
-                content = """{"googleClientId":"web-client-id-123"}""",
+                content = """{"googleClientId":"web-client-id-123","firebase":{"apiKey":"AIza","appId":"1:2:android:3","projectId":"neovita-x","senderId":"99"}}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
+            "/devices/token" -> respond("", HttpStatusCode.NoContent)
             else -> respond("Not Found", HttpStatusCode.NotFound)
         }
     }
@@ -44,5 +45,15 @@ class ApiServiceTest {
         val result = apiService.getConfig()
         assertTrue(result.isSuccess)
         assertEquals("web-client-id-123", result.getOrNull()?.googleClientId)
+    }
+
+    @Test fun `getConfig parses firebase client config`() = runTest {
+        val firebase = apiService.getConfig().getOrNull()?.firebase
+        assertEquals("neovita-x", firebase?.projectId)
+        assertEquals("99", firebase?.senderId)
+    }
+
+    @Test fun `registerDeviceToken posts and succeeds`() = runTest {
+        assertTrue(apiService.registerDeviceToken("fcm-abc", "android").isSuccess)
     }
 }
