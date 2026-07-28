@@ -34,10 +34,15 @@ class HealthRoutesTest {
         "claude.model" to "dummy-model",
     )
 
-    private val twoDays = """
+    // Fechas relativas a hoy: la subida sólo acepta [hoy-30, hoy+1], así que una fecha
+    // fija haría fallar estos tests por el simple paso del tiempo, no por una regresión.
+    private val yesterday: String get() = LocalDate.now().minusDays(1).toString()
+    private val twoDaysAgo: String get() = LocalDate.now().minusDays(2).toString()
+
+    private val twoDays get() = """
         {"metrics":[
-          {"date":"2026-07-25","steps":8000,"sleepMinutes":420,"avgHeartRate":60},
-          {"date":"2026-07-26","steps":12000,"sleepMinutes":480,"avgHeartRate":58}
+          {"date":"$twoDaysAgo","steps":8000,"sleepMinutes":420,"avgHeartRate":60},
+          {"date":"$yesterday","steps":12000,"sleepMinutes":480,"avgHeartRate":58}
         ]}
     """.trimIndent()
 
@@ -73,7 +78,7 @@ class HealthRoutesTest {
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
         val token = jwtService.generateToken("user-2", "USER")
-        val oneDay = """{"metrics":[{"date":"2026-07-25","steps":%d}]}"""
+        val oneDay = """{"metrics":[{"date":"$yesterday","steps":%d}]}"""
 
         client.post("/api/health/metrics") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -137,7 +142,7 @@ class HealthRoutesTest {
         client.post("/api/health/metrics") {
             header(HttpHeaders.Authorization, "Bearer $token")
             contentType(ContentType.Application.Json)
-            setBody("""{"metrics":[{"date":"2026-07-26","steps":12000}]}""")
+            setBody("""{"metrics":[{"date":"$yesterday","steps":12000}]}""")
         }
 
         val after = client.get("/api/assessments/latest") {
@@ -193,7 +198,7 @@ class HealthRoutesTest {
         val response = client.post("/api/health/metrics") {
             header(HttpHeaders.Authorization, "Bearer $token")
             contentType(ContentType.Application.Json)
-            setBody("""{"metrics":[{"date":"2026-07-26","steps":300000}]}""")
+            setBody("""{"metrics":[{"date":"$yesterday","steps":300000}]}""")
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
         assertTrue(response.bodyAsText().contains("INVALID_METRICS"), response.bodyAsText())
