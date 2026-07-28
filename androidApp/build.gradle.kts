@@ -52,5 +52,8 @@ dependencies {
     // shared's androidMain firebase-messaging dep is `implementation`, not visible here
     // transitively — NeoVitaMessagingService needs it directly on androidApp's classpath.
     implementation(libs.firebase.messaging)
+    // Same story: MainActivity registers the Health Connect permission ActivityResult
+    // contract directly, so it needs PermissionController on its own classpath too.
+    implementation(libs.health.connect.client)
     implementation("androidx.activity:activity-compose:1.9.3")
 }
