@@ -3,6 +3,7 @@ package com.neovita.server.plugins
 import com.neovita.server.config.AppRuntimeConfig
 import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
+import com.neovita.server.db.repositories.DeviceTokenRepository
 import com.neovita.server.db.repositories.PlanRepository
 import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.repositories.UserRepository
@@ -10,6 +11,7 @@ import com.neovita.server.routes.*
 import com.neovita.server.services.ClaudeService
 import com.neovita.server.services.GoogleAuthService
 import com.neovita.server.services.JwtService
+import com.neovita.server.services.PushService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
@@ -25,8 +27,10 @@ fun Application.configureRouting(
     claudeService: ClaudeService,
     contentRepo: ContentRepository,
     screenRepo: ScreenRepository,
+    deviceTokenRepo: DeviceTokenRepository,
     googleClientId: String? = null,
-    appConfig: AppRuntimeConfig = AppRuntimeConfig(emptyMap(), 0, 0, false)
+    appConfig: AppRuntimeConfig = AppRuntimeConfig(emptyMap(), 0, 0, false, null),
+    pushService: PushService = PushService(null)
 ) {
     routing {
         get("/health") { call.respondText("OK") }
@@ -43,6 +47,8 @@ fun Application.configureRouting(
             b2bRoutes(userRepo, assessmentRepo)
             contentRoutes(contentRepo, userRepo)
             screenRoutes(screenRepo)
+            deviceRoutes(deviceTokenRepo)
+            pushRoutes(pushService, deviceTokenRepo, userRepo)
         }
 
         // Server-rendered pages for in-app WebView slots — outside /api, before the

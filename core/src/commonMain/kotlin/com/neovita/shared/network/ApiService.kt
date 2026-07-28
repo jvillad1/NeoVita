@@ -28,6 +28,14 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
         httpClient.get("$baseUrl/config").body()
     }
 
+    suspend fun registerDeviceToken(token: String, platform: String): Result<Unit> = safeCall {
+        httpClient.post("$baseUrl/devices/token") {
+            contentType(ContentType.Application.Json)
+            setBody(RegisterDeviceRequest(token, platform))
+        }
+        Unit
+    }
+
     suspend fun getMe(): Result<UserDto> = safeCall {
         httpClient.get("$baseUrl/users/me").body()
     }

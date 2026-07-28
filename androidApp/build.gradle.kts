@@ -48,5 +48,9 @@ dependencies {
     implementation(compose.runtime)
     implementation(compose.ui)
     implementation(libs.sqldelight.android.driver)
+    implementation(libs.androidx.core.ktx)
+    // shared's androidMain firebase-messaging dep is `implementation`, not visible here
+    // transitively — NeoVitaMessagingService needs it directly on androidApp's classpath.
+    implementation(libs.firebase.messaging)
     implementation("androidx.activity:activity-compose:1.9.3")
 }
