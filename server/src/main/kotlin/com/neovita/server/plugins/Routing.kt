@@ -30,6 +30,7 @@ fun Application.configureRouting(
     screenRepo: ScreenRepository,
     deviceTokenRepo: DeviceTokenRepository,
     googleClientId: String? = null,
+    googleClientIdIos: String? = null,
     appConfig: AppRuntimeConfig = AppRuntimeConfig(emptyMap(), 0, 0, false, null),
     pushService: PushService = PushService(null),
     healthRepo: HealthRepository = HealthRepository()
@@ -40,7 +41,7 @@ fun Application.configureRouting(
         // All REST endpoints are namespaced under /api so the wasmJs web app can be
         // served same-origin from "/" without path collisions.
         route("/api") {
-            configRoutes(googleClientId, appConfig)
+            configRoutes(googleClientId, googleClientIdIos, appConfig)
             authRoutes(googleAuthService, jwtService, userRepo)
             userRoutes(userRepo)
             assessmentRoutes(assessmentRepo)

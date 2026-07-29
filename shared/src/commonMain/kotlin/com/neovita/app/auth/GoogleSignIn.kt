@@ -2,9 +2,11 @@ package com.neovita.app.auth
 
 data class GoogleSignInResult(val idToken: String?, val error: String?)
 
+// Google emite un OAuth client distinto por plataforma (y un `aud` distinto en el token),
+// así que llevamos ambos ids y cada actual toma el suyo: sin detección de plataforma en common.
+data class GoogleClientIds(val web: String? = null, val ios: String? = null)
+
 expect class GoogleSignInClient() {
-    // serverClientId: OAuth Web Client ID from /api/config; platforms that resolve it
-    // themselves (wasm) use it as the preferred source and fall back to their own.
-    suspend fun signIn(serverClientId: String?): GoogleSignInResult
+    suspend fun signIn(clients: GoogleClientIds): GoogleSignInResult
     suspend fun signOut()
 }

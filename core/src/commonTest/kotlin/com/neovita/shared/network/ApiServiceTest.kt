@@ -20,7 +20,7 @@ class ApiServiceTest {
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
             "/config" -> respond(
-                content = """{"googleClientId":"web-client-id-123","firebase":{"apiKey":"AIza","appId":"1:2:android:3","projectId":"neovita-x","senderId":"99"}}""",
+                content = """{"googleClientId":"web-client-id-123","googleClientIdIos":"ios-client-id-456","firebase":{"apiKey":"AIza","appId":"1:2:android:3","projectId":"neovita-x","senderId":"99"}}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
@@ -52,6 +52,10 @@ class ApiServiceTest {
         val result = apiService.getConfig()
         assertTrue(result.isSuccess)
         assertEquals("web-client-id-123", result.getOrNull()?.googleClientId)
+    }
+
+    @Test fun `getConfig parses the ios client id`() = runTest {
+        assertEquals("ios-client-id-456", apiService.getConfig().getOrNull()?.googleClientIdIos)
     }
 
     @Test fun `getConfig parses firebase client config`() = runTest {

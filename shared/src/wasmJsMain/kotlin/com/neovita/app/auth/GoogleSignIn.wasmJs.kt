@@ -84,8 +84,8 @@ private fun gisDisableAutoSelect(): Unit = js(
 
 actual class GoogleSignInClient actual constructor() {
 
-    actual suspend fun signIn(serverClientId: String?): GoogleSignInResult {
-        val clientId = serverClientId?.takeIf { it.isNotBlank() } ?: resolveClientId()
+    actual suspend fun signIn(clients: GoogleClientIds): GoogleSignInResult {
+        val clientId = clients.web?.takeIf { it.isNotBlank() } ?: resolveClientId()
         if (clientId.isBlank()) {
             return GoogleSignInResult(
                 idToken = null,
