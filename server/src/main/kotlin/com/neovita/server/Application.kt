@@ -80,5 +80,5 @@ fun Application.module() {
         secret = config.property("jwt.secret").getString(),
         issuer = config.property("jwt.issuer").getString()
     )
-    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, deviceTokenRepo, googleClientId, appConfig, pushService, healthRepo)
+    configureRouting(googleService, jwtService, userRepo, assessmentRepo, planRepo, claudeService, contentRepo, screenRepo, deviceTokenRepo, googleClientId, googleClientIdIos, appConfig, pushService, healthRepo)
 }

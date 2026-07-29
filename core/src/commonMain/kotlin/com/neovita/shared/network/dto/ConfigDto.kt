@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class WebConfigResponse(
     val googleClientId: String? = null,
+    val googleClientIdIos: String? = null,
     val features: Map<String, Boolean> = emptyMap(),
     val minVersion: MinVersions = MinVersions(),
     val maintenance: Boolean = false,

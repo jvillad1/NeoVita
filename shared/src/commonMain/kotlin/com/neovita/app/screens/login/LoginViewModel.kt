@@ -3,6 +3,7 @@ package com.neovita.app.screens.login
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import com.neovita.app.auth.GoogleClientIds
 import com.neovita.app.auth.GoogleSignInClient
 import com.neovita.shared.network.ApiService
 import com.neovita.shared.network.dto.AuthResponse
@@ -30,8 +31,10 @@ class LoginViewModel(
     fun signInWithGoogle() {
         _state.update { it.copy(isLoading = true, error = null) }
         scope.launch {
-            val clientId = apiService.getConfig().getOrNull()?.googleClientId
-            val result = googleSignInClient.signIn(clientId)
+            val config = apiService.getConfig().getOrNull()
+            val result = googleSignInClient.signIn(
+                GoogleClientIds(web = config?.googleClientId, ios = config?.googleClientIdIos)
+            )
             if (result.idToken == null) {
                 _state.update { it.copy(isLoading = false, error = result.error ?: "Error al iniciar sesión") }
                 return@launch

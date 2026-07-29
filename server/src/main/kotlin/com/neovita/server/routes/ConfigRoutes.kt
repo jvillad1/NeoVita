@@ -6,12 +6,13 @@ import com.neovita.shared.network.dto.WebConfigResponse
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.configRoutes(googleClientId: String?, appConfig: AppRuntimeConfig) {
+fun Route.configRoutes(googleClientId: String?, googleClientIdIos: String?, appConfig: AppRuntimeConfig) {
     // Public config for clients (nothing here is a secret).
     get("/config") {
         call.respond(
             WebConfigResponse(
                 googleClientId = googleClientId?.takeIf { it.isNotBlank() },
+                googleClientIdIos = googleClientIdIos?.takeIf { it.isNotBlank() },
                 features = appConfig.features,
                 minVersion = MinVersions(
                     android = appConfig.minVersionAndroid,
