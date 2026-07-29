@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import platform.AuthenticationServices.ASPresentationAnchor
 import platform.AuthenticationServices.ASWebAuthenticationPresentationContextProvidingProtocol
 import platform.AuthenticationServices.ASWebAuthenticationSession
+import platform.AuthenticationServices.ASWebAuthenticationSessionErrorCodeCanceledLogin
 import platform.CoreCrypto.CC_SHA256
 import platform.CoreCrypto.CC_SHA256_DIGEST_LENGTH
 import platform.Foundation.NSData
@@ -130,10 +131,15 @@ actual class GoogleSignInClient actual constructor() {
                 val session = ASWebAuthenticationSession(
                     uRL = NSURL(string = url),
                     callbackURLScheme = scheme
-                ) { callbackUrl, _ ->
+                ) { callbackUrl, error ->
                     if (cont.isActive) {
+                        // Sin callback sólo es "cancelado" si el error lo dice; cualquier otro
+                        // fallo (contexto de presentación inválido, etc.) no debe leerse como
+                        // si la usuaria hubiera cerrado la hoja.
                         val outcome = callbackUrl?.absoluteString?.let { AuthOutcome.Callback(it) }
-                            ?: AuthOutcome.Cancelled
+                            ?: if (error == null ||
+                                error.code == ASWebAuthenticationSessionErrorCodeCanceledLogin
+                            ) AuthOutcome.Cancelled else AuthOutcome.NotStarted
                         cont.resume(outcome)
                     }
                 }
