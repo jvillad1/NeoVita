@@ -24,10 +24,14 @@ import platform.Foundation.NSURL
 import platform.Foundation.NSURLComponents
 import platform.Foundation.base64EncodedStringWithOptions
 import platform.Foundation.create
+import platform.Security.SecRandomCopyBytes
+import platform.Security.errSecSuccess
+import platform.Security.kSecRandomDefault
 import platform.UIKit.UIApplication
+import platform.UIKit.UIWindow
+import platform.UIKit.UIWindowScene
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
-import kotlin.random.Random
 
 // Sign-In nativo sin SDK de terceros: ASWebAuthenticationSession abre la hoja de consentimiento
 // de Google y devuelve el callback por esquema (no hace falta registrar CFBundleURLTypes).
@@ -52,6 +56,10 @@ actual class GoogleSignInClient actual constructor() {
         val scheme = reversedClientId(clientId)
         val redirectUri = "$scheme:/oauth2redirect"
         val verifier = randomCodeVerifier()
+            ?: return GoogleSignInResult(
+                idToken = null,
+                error = "No se pudo iniciar el inicio de sesión de forma segura"
+            )
         val challenge = base64UrlSha256(verifier)
 
         val authUrl = "$AUTH_ENDPOINT" +
@@ -62,8 +70,13 @@ actual class GoogleSignInClient actual constructor() {
             "&code_challenge=$challenge" +
             "&code_challenge_method=S256"
 
-        val callback = presentAuthSession(authUrl, scheme)
-            ?: return GoogleSignInResult(idToken = null, error = "Inicio de sesión cancelado")
+        val callback = when (val outcome = presentAuthSession(authUrl, scheme)) {
+            is AuthOutcome.Callback -> outcome.url
+            AuthOutcome.Cancelled ->
+                return GoogleSignInResult(idToken = null, error = "Inicio de sesión cancelado")
+            AuthOutcome.NotStarted ->
+                return GoogleSignInResult(idToken = null, error = "No se pudo abrir el inicio de sesión de Google")
+        }
 
         val code = queryValue(callback, "code")
             ?: return GoogleSignInResult(
@@ -92,10 +105,15 @@ actual class GoogleSignInClient actual constructor() {
                     "&code_verifier=$verifier"
             )
         }
-        val idToken = json.parseToJsonElement(response.bodyAsText())
-            .jsonObject["id_token"]?.jsonPrimitive?.content
+        val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
+        val idToken = body["id_token"]?.jsonPrimitive?.content
         if (idToken.isNullOrBlank()) {
-            GoogleSignInResult(idToken = null, error = "Google no devolvió un token de sesión")
+            val googleError = body["error"]?.jsonPrimitive?.content
+            GoogleSignInResult(
+                idToken = null,
+                error = googleError?.let { "Google rechazó el inicio de sesión ($it)" }
+                    ?: "Google no devolvió un token de sesión"
+            )
         } else {
             GoogleSignInResult(idToken = idToken, error = null)
         }
@@ -104,37 +122,85 @@ actual class GoogleSignInClient actual constructor() {
     }
 
     @OptIn(ExperimentalForeignApi::class)
-    private suspend fun presentAuthSession(url: String, scheme: String): String? =
-        suspendCancellableCoroutine { cont ->
-            val session = ASWebAuthenticationSession(
-                uRL = NSURL(string = url),
-                callbackURLScheme = scheme
-            ) { callbackUrl, _ ->
-                if (cont.isActive) cont.resume(callbackUrl?.absoluteString)
+    private suspend fun presentAuthSession(url: String, scheme: String): AuthOutcome {
+        val anchor = resolvePresentationAnchor() ?: return AuthOutcome.NotStarted
+
+        return runCatching {
+            suspendCancellableCoroutine<AuthOutcome> { cont ->
+                val session = ASWebAuthenticationSession(
+                    uRL = NSURL(string = url),
+                    callbackURLScheme = scheme
+                ) { callbackUrl, _ ->
+                    if (cont.isActive) {
+                        val outcome = callbackUrl?.absoluteString?.let { AuthOutcome.Callback(it) }
+                            ?: AuthOutcome.Cancelled
+                        cont.resume(outcome)
+                    }
+                }
+                session.presentationContextProvider = AnchorProvider(anchor)
+                session.prefersEphemeralWebBrowserSession = false
+                if (!session.start()) {
+                    if (cont.isActive) cont.resume(AuthOutcome.NotStarted)
+                }
+                cont.invokeOnCancellation { session.cancel() }
             }
-            session.presentationContextProvider = AnchorProvider()
-            session.prefersEphemeralWebBrowserSession = false
-            if (!session.start()) {
-                if (cont.isActive) cont.resume(null)
-            }
-            cont.invokeOnCancellation { session.cancel() }
-        }
+        }.getOrElse { AuthOutcome.NotStarted }
+    }
 }
 
-// ASWebAuthenticationSession exige una ventana donde presentarse.
-private class AnchorProvider : NSObject(), ASWebAuthenticationPresentationContextProvidingProtocol {
+// Resultado del paso de presentación de la sesión de auth: distingue "el usuario canceló"
+// de "no se pudo ni siquiera abrir la sesión" (falta de ancla, o fallo al construirla).
+private sealed interface AuthOutcome {
+    data class Callback(val url: String) : AuthOutcome
+    data object Cancelled : AuthOutcome
+    data object NotStarted : AuthOutcome
+}
+
+// ASWebAuthenticationSession exige una ventana donde presentarse; la resolvemos ANTES de
+// arrancar la sesión para no depender de un force-unwrap en el protocolo de presentación.
+@OptIn(ExperimentalForeignApi::class)
+private fun resolvePresentationAnchor(): UIWindow? {
+    UIApplication.sharedApplication.keyWindow?.let { return it }
+
+    val windowScenes = UIApplication.sharedApplication.connectedScenes
+        .mapNotNull { it as? UIWindowScene }
+
+    windowScenes.forEach { scene ->
+        scene.windows.forEach { window ->
+            val uiWindow = window as? UIWindow
+            if (uiWindow?.isKeyWindow() == true) return uiWindow
+        }
+    }
+
+    return windowScenes.firstOrNull()?.windows?.firstOrNull() as? UIWindow
+}
+
+private class AnchorProvider(
+    private val anchor: UIWindow
+) : NSObject(), ASWebAuthenticationPresentationContextProvidingProtocol {
     override fun presentationAnchorForWebAuthenticationSession(
         session: ASWebAuthenticationSession
-    ): ASPresentationAnchor = UIApplication.sharedApplication.keyWindow!!
+    ): ASPresentationAnchor = anchor
 }
 
 // "123-abc.apps.googleusercontent.com" -> "com.googleusercontent.apps.123-abc"
 private fun reversedClientId(clientId: String): String =
     "com.googleusercontent.apps." + clientId.removeSuffix(".apps.googleusercontent.com")
 
-private fun randomCodeVerifier(): String {
+@OptIn(ExperimentalForeignApi::class)
+private fun randomCodeVerifier(): String? {
+    // PKCE exige aleatoriedad criptográfica: kotlin.random.Random NO lo es (documentado por
+    // Kotlin como no apto para uso criptográfico). Usamos el CSPRNG del sistema y, si falla,
+    // propagamos el error en vez de degradar a un generador débil.
     val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
-    return (1..64).map { chars[Random.nextInt(chars.length)] }.joinToString("")
+    val bytes = ByteArray(64)
+    val status = bytes.usePinned { pinned ->
+        SecRandomCopyBytes(kSecRandomDefault, bytes.size.convert(), pinned.addressOf(0))
+    }
+    if (status != errSecSuccess) return null
+    return buildString(bytes.size) {
+        bytes.forEach { b -> append(chars[(b.toInt() and 0xFF) % chars.length]) }
+    }
 }
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
