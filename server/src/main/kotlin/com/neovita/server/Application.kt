@@ -46,6 +46,7 @@ fun Application.module() {
         expirationMs = config.property("jwt.expirationMs").getString().toLong()
     )
     val googleClientId = config.propertyOrNull("google.clientId")?.getString()
+    val googleClientIdIos = config.propertyOrNull("google.clientIdIos")?.getString()
     val appConfig = AppRuntimeConfig(
         features = parseFeatures(config.propertyOrNull("appConfig.features")?.getString() ?: ""),
         minVersionAndroid = config.propertyOrNull("appConfig.minVersionAndroid")?.getString()?.toIntOrNull() ?: 0,
@@ -59,7 +60,13 @@ fun Application.module() {
         )
     )
     log.info("appConfig: $appConfig")
-    val googleService = GoogleAuthService(httpClient, clientId = googleClientId)
+    val googleService = GoogleAuthService(
+        httpClient,
+        allowedAudiences = setOfNotNull(
+            googleClientId?.takeIf { it.isNotBlank() },
+            googleClientIdIos?.takeIf { it.isNotBlank() }
+        )
+    )
     val claudeService = ClaudeService(
         client = httpClient,
         apiKey = config.property("claude.apiKey").getString(),
