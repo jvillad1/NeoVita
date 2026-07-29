@@ -7,23 +7,48 @@
 # y luego moría al arrancar con MissingResourceException buscando Roboto-Regular.ttf.
 set -e
 
+# Xcode no hereda el entorno del shell (~/.zshrc): lanzado desde el Dock no tiene JAVA_HOME
+# ni java en el PATH, y en esta máquina ningún JDK está donde /usr/libexec/java_home mira.
+if [ -z "$JAVA_HOME" ] && ! command -v java >/dev/null 2>&1; then
+  for candidate in \
+    /usr/local/share/jbrsdk-21/Contents/Home \
+    /usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+  do
+    if [ -x "$candidate/bin/java" ]; then
+      JAVA_HOME="$candidate"
+      export JAVA_HOME
+      break
+    fi
+  done
+fi
+if [ -z "$JAVA_HOME" ] && ! command -v java >/dev/null 2>&1; then
+  echo "error: no se encontró un JDK. Exporta JAVA_HOME o instala un JDK 21 (ver CLAUDE.md)."
+  exit 1
+fi
+
+# La arquitectura la manda Xcode ($ARCHS), no el host: bajo Rosetta uname -m mentiría.
 case "$SDK_NAME" in
   iphoneos*) TASK=assembleIosArm64MainResources ;;
-  *) if [ "$(uname -m)" = "arm64" ]; then
-       TASK=assembleIosSimulatorArm64MainResources
-     else
-       TASK=assembleIosX64MainResources
-     fi ;;
+  *) case "$ARCHS" in
+       *arm64*) TASK=assembleIosSimulatorArm64MainResources ;;
+       *) TASK=assembleIosX64MainResources ;;
+     esac ;;
 esac
 
 cd "$SRCROOT/.."
 ./gradlew --quiet ":shared:$TASK"
 
-SRC=$(find shared/build/generated/compose/resourceGenerator/assembledResources \
-  -maxdepth 2 -type d -name composeResources | head -1)
+# El directorio se deriva de la tarea, NO se busca con `find`: assembledResources/ también
+# contiene los recursos de wasmJs, y un `find | head -1` puede devolver ésos — hoy funciona
+# sólo porque el contenido coincide, y rompería en silencio en cuanto diverjan.
+NAME=${TASK#assemble}          # IosX64MainResources
+NAME=${NAME%Resources}         # IosX64Main
+FIRST=$(printf '%s' "$NAME" | cut -c1 | tr 'A-Z' 'a-z')
+REST=$(printf '%s' "$NAME" | cut -c2-)
+SRC="shared/build/generated/compose/resourceGenerator/assembledResources/${FIRST}${REST}/composeResources"
 
-if [ -z "$SRC" ]; then
-  echo "error: Gradle no generó los composeResources de iOS (tarea $TASK)"
+if [ ! -d "$SRC" ]; then
+  echo "error: la tarea $TASK no dejó recursos en $SRC"
   exit 1
 fi
 
