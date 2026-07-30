@@ -38,7 +38,7 @@ class GoogleAuthServiceTest {
     @Test fun `parses real tokeninfo payload with extra fields`() = runBlocking {
         val service = GoogleAuthService(
             clientReturning(HttpStatusCode.OK, realTokenInfoJson),
-            clientId = "1234.apps.googleusercontent.com"
+            allowedAudiences = setOf("1234.apps.googleusercontent.com")
         )
         val user = service.verifyIdToken("some-token")
         assertEquals("ana@example.com", user?.email)
@@ -51,7 +51,7 @@ class GoogleAuthServiceTest {
 
         val blankClientId = GoogleAuthService(
             clientReturning(HttpStatusCode.OK, realTokenInfoJson),
-            clientId = ""
+            allowedAudiences = emptySet()
         )
         assertNull(blankClientId.verifyIdToken("some-token"))
     }
@@ -59,7 +59,7 @@ class GoogleAuthServiceTest {
     @Test fun `accepts token when aud matches configured client id`() = runBlocking {
         val service = GoogleAuthService(
             clientReturning(HttpStatusCode.OK, realTokenInfoJson),
-            clientId = "1234.apps.googleusercontent.com"
+            allowedAudiences = setOf("1234.apps.googleusercontent.com")
         )
         assertEquals("ana@example.com", service.verifyIdToken("some-token")?.email)
     }
@@ -67,17 +67,33 @@ class GoogleAuthServiceTest {
     @Test fun `rejects token minted for another app`() = runBlocking {
         val service = GoogleAuthService(
             clientReturning(HttpStatusCode.OK, realTokenInfoJson),
-            clientId = "other-app.apps.googleusercontent.com"
+            allowedAudiences = setOf("other-app.apps.googleusercontent.com")
         )
         assertNull(service.verifyIdToken("some-token"))
     }
 
     @Test fun `returns null for invalid token response`() = runBlocking {
-        // clientId set so the test exercises the non-2xx branch, not the fail-closed guard
+        // allowedAudiences set so the test exercises the non-2xx branch, not the fail-closed guard
         val service = GoogleAuthService(
             clientReturning(HttpStatusCode.BadRequest, """{"error":"invalid_token"}"""),
-            clientId = "1234.apps.googleusercontent.com"
+            allowedAudiences = setOf("1234.apps.googleusercontent.com")
         )
         assertNull(service.verifyIdToken("bad-token"))
+    }
+
+    @Test fun `accepts a token minted for the ios client`() = runBlocking {
+        val service = GoogleAuthService(
+            clientReturning(HttpStatusCode.OK, realTokenInfoJson),
+            allowedAudiences = setOf("ios-app.apps.googleusercontent.com", "1234.apps.googleusercontent.com")
+        )
+        assertEquals("ana@example.com", service.verifyIdToken("some-token")?.email)
+    }
+
+    @Test fun `still rejects an audience outside the allowed set`() = runBlocking {
+        val service = GoogleAuthService(
+            clientReturning(HttpStatusCode.OK, realTokenInfoJson),
+            allowedAudiences = setOf("ios-app.apps.googleusercontent.com")
+        )
+        assertNull(service.verifyIdToken("some-token"))
     }
 }

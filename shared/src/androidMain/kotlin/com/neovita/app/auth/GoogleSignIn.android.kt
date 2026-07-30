@@ -13,7 +13,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 
 actual class GoogleSignInClient actual constructor() {
 
-    actual suspend fun signIn(serverClientId: String?): GoogleSignInResult {
+    actual suspend fun signIn(clients: GoogleClientIds): GoogleSignInResult {
+        val serverClientId = clients.web
         val activity = CurrentActivityHolder.activity
             ?: return GoogleSignInResult(idToken = null, error = "No hay una pantalla activa")
         if (serverClientId.isNullOrBlank()) {
