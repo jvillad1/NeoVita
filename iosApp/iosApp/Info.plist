@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Compose Multiplatform aborta al arrancar si falta esta clave (PlistSanityCheck):
+	     sin ella iOS queda capado a 60 Hz en pantallas ProMotion. Xcode fusiona este
+	     archivo con las claves que genera (GENERATE_INFOPLIST_FILE sigue en YES), y
+	     INFOPLIST_KEY_* no sirve porque sólo admite claves conocidas de Apple. -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+</dict>
+</plist>
