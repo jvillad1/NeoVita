@@ -49,6 +49,29 @@ class AssessmentRepository(private val healthRepository: HealthRepository? = nul
             .limit(1).singleOrNull()?.toEntity()
     }
 
+    /** Puntuaciones de la evaluación más reciente de cada usuario, en una sola consulta
+     *  (el dashboard de empresa las pedía una por miembro). */
+    fun latestScoresFor(userIds: List<String>): Map<String, PillarScoresDto> {
+        if (userIds.isEmpty()) return emptyMap()
+        val health = healthRepository?.summariesFor(userIds).orEmpty()
+        return transaction {
+            AssessmentsTable.selectAll()
+                .where { AssessmentsTable.userId inList userIds }
+                .orderBy(AssessmentsTable.createdAt, SortOrder.DESC)
+                .groupBy { it[AssessmentsTable.userId] }
+                .mapValues { (userId, rows) ->
+                    val row = rows.first()
+                    calculateScores(
+                        row[AssessmentsTable.exerciseFrequency],
+                        row[AssessmentsTable.exerciseType],
+                        row[AssessmentsTable.sleepHours],
+                        row[AssessmentsTable.sleepQuality],
+                        health = health[userId]
+                    ).toDto()
+                }
+        }
+    }
+
     private fun ResultRow.toEntity(): AssessmentEntity {
         val freq = this[AssessmentsTable.exerciseFrequency]
         val type = this[AssessmentsTable.exerciseType]
