@@ -52,7 +52,15 @@ fun Route.screenRoutes(repo: ScreenRepository, userRepository: UserRepository) {
                     mapOf("code" to "INVALID_SCREEN", "message" to reason)
                 )
             }
-            call.respond(repo.save(slug, body.sections))
+            // If-Match lleva la versión que el editor tenía cargada; si no viene, se fuerza.
+            val expected = call.request.headers[HttpHeaders.IfMatch]?.toIntOrNull()
+            val saved = repo.save(slug, body.sections, expected)
+                ?: return@put call.respond(
+                    HttpStatusCode.Conflict,
+                    mapOf("code" to "SCREEN_CONFLICT",
+                          "message" to "Otra persona guardó esta pantalla mientras editabas. Recarga y vuelve a aplicar tus cambios.")
+                )
+            call.respond(saved)
         }
     }
 }

@@ -42,30 +42,50 @@ class ScreenRepository {
         }
     }
 
-    /** Guarda [sections] en [slug] subiendo la versión: los clientes usan version como ETag,
-     *  así que el bump es lo que invalida su caché y hace visible el cambio. */
-    fun save(slug: String, sections: List<SectionDto>): ScreenDefinitionDto = transaction {
+    /**
+     * Guarda [sections] en [slug] subiendo la versión: los clientes usan version como ETag,
+     * así que el bump es lo que invalida su caché y hace visible el cambio.
+     *
+     * Con [expectedVersion] no nulo la escritura es condicional (bloqueo optimista): si otra
+     * persona guardó mientras editábamos, devuelve null en vez de pisar su trabajo — sin esto
+     * dos guardados simultáneos descartan uno en silencio y ambos reciben 200.
+     *
+     * Guardar además republica: `getActive` filtra `active`, así que sin esto una pantalla
+     * desactivada aceptaría ediciones con 200 que ningún cliente llegaría a ver.
+     */
+    fun save(slug: String, sections: List<SectionDto>, expectedVersion: Int? = null): ScreenDefinitionDto? = transaction {
         val now = System.currentTimeMillis()
         val encoded = json.encodeToString<List<SectionDto>>(sections)
         val current = ScreensTable.selectAll()
             .where { ScreensTable.slug eq slug }
             .singleOrNull()
-        val nextVersion = (current?.get(ScreensTable.version) ?: 0) + 1
+
         if (current == null) {
+            if (expectedVersion != null) return@transaction null   // esperaba una fila que no existe
             ScreensTable.insert {
                 it[ScreensTable.slug] = slug
-                it[version] = nextVersion
+                it[version] = 1
                 it[sectionsJson] = encoded
                 it[active] = true
                 it[updatedAt] = now
             }
-        } else {
-            ScreensTable.update({ ScreensTable.slug eq slug }) {
-                it[version] = nextVersion
-                it[sectionsJson] = encoded
-                it[updatedAt] = now
-            }
+            return@transaction ScreenDefinitionDto(slug = slug, version = 1, sections = sections)
         }
+
+        val storedVersion = current[ScreensTable.version]
+        if (expectedVersion != null && expectedVersion != storedVersion) return@transaction null
+        val nextVersion = storedVersion + 1
+        // La condición sobre version va en el UPDATE, no sólo en el chequeo de arriba: así
+        // dos transacciones concurrentes no pueden escribir ambas la misma versión.
+        val updated = ScreensTable.update({
+            (ScreensTable.slug eq slug) and (ScreensTable.version eq storedVersion)
+        }) {
+            it[version] = nextVersion
+            it[sectionsJson] = encoded
+            it[active] = true
+            it[updatedAt] = now
+        }
+        if (updated == 0) return@transaction null
         ScreenDefinitionDto(slug = slug, version = nextVersion, sections = sections)
     }
 

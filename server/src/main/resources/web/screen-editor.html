@@ -554,6 +554,9 @@
                 headers: {
                     "Authorization": "Bearer " + TOKEN,
                     "Content-Type": "application/json",
+                    // La versión que cargamos: si alguien más guardó mientras editábamos,
+                    // el servidor responde 409 en vez de pisar su trabajo.
+                    "If-Match": String(screens[currentSlug].version),
                 },
                 body: JSON.stringify({ sections: normalizeForSave(workingSections) }),
             });
@@ -568,6 +571,11 @@
                 workingSections = deepClone(data.sections);
                 showMessage("Guardado — versión " + data.version, "success");
                 renderAll();
+            } else if (res.status === 409) {
+                // SCREEN_CONFLICT: otra persona guardó primero. Nunca afirmamos éxito —
+                // mostramos el mensaje del servidor y mandamos a "Recargar" antes de reintentar.
+                const reason = (data && data.message) ? data.message : "Otra persona guardó esta pantalla mientras editabas.";
+                showMessage(reason + " Pulsá \"Recargar\" para traer la versión actual.", "error");
             } else {
                 // 400 trae {"code":"INVALID_SCREEN","message":<razón>} — se muestra tal cual,
                 // porque el servidor es quien decide si la definición es válida.
