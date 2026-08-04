@@ -344,4 +344,50 @@ class ScreenRoutesTest {
             }.status
         )
     }
+
+    @Test
+    fun `a quoted If-Match is honoured like the bare integer`() = testApplication {
+        environment { config = testConfig("screens_test_quoted_match") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        // Comillas como manda la especificación de ETag: debe proteger igual que "1".
+        assertEquals(
+            HttpStatusCode.OK,
+            client.put("/api/screens/dashboard") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+                header(HttpHeaders.IfMatch, "\"1\"")
+                contentType(ContentType.Application.Json); setBody(validBody)
+            }.status
+        )
+        // Y la misma versión, ya obsoleta, debe chocar en vez de forzar.
+        assertEquals(
+            HttpStatusCode.Conflict,
+            client.put("/api/screens/dashboard") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+                header(HttpHeaders.IfMatch, "W/\"1\"")
+                contentType(ContentType.Application.Json); setBody(validBody)
+            }.status
+        )
+    }
+
+    @Test
+    fun `an unreadable If-Match is a client error, not a licence to force`() = testApplication {
+        environment { config = testConfig("screens_test_bad_match") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.put("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header(HttpHeaders.IfMatch, "no-soy-una-version")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("INVALID_IF_MATCH"), response.bodyAsText())
+    }
+
 }
