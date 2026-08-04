@@ -1,6 +1,9 @@
 package com.neovita.server.routes
 
+import com.neovita.server.db.repositories.UserRepository
+import com.neovita.server.plugins.requireRole
 import io.ktor.http.*
+import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -11,7 +14,7 @@ import io.ktor.server.routing.*
 // NOTE: this demo only checks that the header is PRESENT. Any real /web page that returns
 // user data must actually verify the JWT (same auth plugin/validation as the rest of the
 // API) — never trust "Bearer " presence alone as proof of an authenticated user.
-fun Route.webRoutes() {
+fun Route.webRoutes(userRepository: UserRepository) {
     get("/web/demo") {
         val hasSession = call.request.headers[HttpHeaders.Authorization]
             ?.startsWith("Bearer ") == true
@@ -41,5 +44,25 @@ fun Route.webRoutes() {
             """.trimIndent(),
             ContentType.Text.Html
         )
+    }
+
+    // El editor de pantallas: HTML servido por nosotros, abierto desde Perfil con el slot
+    // WebView. Vive en el servidor a propósito — mejorarlo es un deploy, nunca un release.
+    authenticate("jwt-auth") {
+        get("/web/admin/screens") {
+            if (!call.requireRole(userRepository, "EMPLOYER")) return@get
+            // Los WebView sólo adjuntan el JWT a la petición INICIAL, así que los fetch()
+            // de la página irían sin credencial. Le pasamos el token de quien ya se
+            // autenticó aquí. Es su propio token, la página es same-origin, va por https y
+            // está restringida a EMPLOYER; aun así no debe registrarse en logs ni salir de
+            // este origen. (Mejora futura: un token efímero con alcance sólo-pantallas.)
+            val token = call.request.headers[HttpHeaders.Authorization]
+                ?.removePrefix("Bearer ")?.trim().orEmpty()
+            val html = javaClass.getResource("/web/screen-editor.html")!!.readText()
+                .replace("__BOOTSTRAP_TOKEN__", token)
+            // La página lleva el JWT de quien la pidió: nunca debe quedar en la caché del WebView.
+            call.response.header(HttpHeaders.CacheControl, "no-store")
+            call.respondText(html, ContentType.Text.Html)
+        }
     }
 }

@@ -1,13 +1,18 @@
 package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.ScreenRepository
+import com.neovita.server.db.repositories.UserRepository
+import com.neovita.server.plugins.requireRole
+import com.neovita.shared.network.dto.ScreenUpdateRequest
+import com.neovita.shared.network.dto.validateScreenSections
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.screenRoutes(repo: ScreenRepository) {
+fun Route.screenRoutes(repo: ScreenRepository, userRepository: UserRepository) {
     authenticate("jwt-auth") {
         get("/screens/{slug}") {
             val slug = call.parameters["slug"] ?: return@get call.respond(HttpStatusCode.BadRequest)
@@ -20,6 +25,34 @@ fun Route.screenRoutes(repo: ScreenRepository) {
             }
 
             call.respond(screen)
+        }
+
+        // Administración de pantallas (EMPLOYER). El editor web vive en /web/admin/screens.
+        get("/screens") {
+            if (!call.requireRole(userRepository, "EMPLOYER")) return@get
+            call.respond(repo.listAll())
+        }
+        put("/screens/{slug}") {
+            if (!call.requireRole(userRepository, "EMPLOYER")) return@put
+            val slug = call.parameters["slug"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+            // El slug entra en varchar(64) y crea filas nuevas: acotarlo evita un 500 por
+            // desbordar la columna y basura arbitraria en la tabla.
+            if (!slug.matches(Regex("^[a-z0-9-]{1,64}$"))) {
+                return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("code" to "INVALID_SCREEN", "message" to "Slug inválido: sólo minúsculas, números y guiones (máx. 64)")
+                )
+            }
+            val body = call.receive<ScreenUpdateRequest>()
+            // El servidor es la frontera de confianza: el editor valida por comodidad,
+            // pero lo que decide es esto.
+            validateScreenSections(body.sections)?.let { reason ->
+                return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("code" to "INVALID_SCREEN", "message" to reason)
+                )
+            }
+            call.respond(repo.save(slug, body.sections))
         }
     }
 }
