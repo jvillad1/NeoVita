@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeoVita — Editor de pantallas</title>
+<style>
+    /* Estilo cercano al de la app: fondo gris claro, acento NeoCrimson, tarjetas
+       blancas redondeadas. Sin fuentes web ni recursos externos: sólo la fuente
+       del sistema, para que la página funcione sin más red que nuestro origen. */
+    :root {
+        --bg: #f5f5f7;
+        --accent: #8B1D41;
+        --accent-dark: #6e1734;
+        --card-bg: #ffffff;
+        --text: #2b2b2f;
+        --text-muted: #6b6b72;
+        --border: #e2e2e6;
+        --danger-bg: #fdecec;
+        --danger-text: #9a2a2a;
+        --success-bg: #eaf6ec;
+        --success-text: #1e6b34;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 24px 16px 64px;
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .subtitle { color: var(--text-muted); font-size: 13px; margin: 0 0 20px; }
+    .container { max-width: 720px; margin: 0 auto; }
+
+    .card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    input[type="text"], input[type="url"], textarea, select {
+        width: 100%;
+        font: inherit;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        color: var(--text);
+        margin-bottom: 10px;
+    }
+    textarea { resize: vertical; min-height: 60px; }
+
+    button {
+        font: inherit;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 14px;
+        cursor: pointer;
+        background: #efeef0;
+        color: var(--text);
+    }
+    button:hover:not(:disabled) { filter: brightness(0.97); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: #fff; }
+    button.primary:hover:not(:disabled) { background: var(--accent-dark); }
+    button.danger { background: var(--danger-bg); color: var(--danger-text); }
+    button.small { padding: 4px 10px; font-size: 12px; }
+
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row.between { justify-content: space-between; }
+    .top-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+    .top-bar select { margin-bottom: 0; flex: 1; }
+
+    .section-card { border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .type-badge {
+        display: inline-block;
+        background: #f3e6ec;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 3px 8px;
+        border-radius: 999px;
+    }
+    .section-title-preview { font-size: 13px; color: var(--text-muted); margin-left: 8px; }
+    .section-controls { display: flex; gap: 6px; }
+
+    .card-item { border: 1px dashed var(--border); border-radius: 12px; padding: 10px; margin-bottom: 8px; }
+    .card-item .row { margin-bottom: 6px; }
+    .card-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+    .card-fields .full { grid-column: 1 / -1; }
+
+    .add-section { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .add-section select { margin-bottom: 0; flex: 1; }
+
+    #message {
+        display: none;
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        font-size: 14px;
+        white-space: pre-wrap;
+    }
+    #message.success { display: block; background: var(--success-bg); color: var(--success-text); }
+    #message.error { display: block; background: var(--danger-bg); color: var(--danger-text); }
+
+    #jsonPanel { display: none; }
+    #jsonPanel pre {
+        background: #1f1f24;
+        color: #e6e6e6;
+        border-radius: 12px;
+        padding: 12px;
+        overflow: auto;
+        font-size: 12px;
+        line-height: 1.5;
+        max-height: 400px;
+    }
+
+    .empty-hint { color: var(--text-muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Editor de pantallas</h1>
+    <p class="subtitle">Cambios aquí se publican al guardar — sin release de la tienda.</p>
+
+    <div id="message"></div>
+
+    <div class="card top-bar">
+        <select id="slugSelect" aria-label="Pantalla"></select>
+        <button id="reloadBtn" type="button">Recargar</button>
+    </div>
+
+    <div id="editorArea">
+        <div id="sectionsList"></div>
+
+        <div class="card">
+            <div class="add-section">
+                <select id="newSectionType" aria-label="Tipo de sección nueva">
+                    <option value="HERO_SCORE">HERO_SCORE</option>
+                    <option value="CARD_ROW">CARD_ROW</option>
+                    <option value="CARD_LIST">CARD_LIST</option>
+                    <option value="QUOTE_BANNER">QUOTE_BANNER</option>
+                    <option value="CONTENT_FEED">CONTENT_FEED</option>
+                </select>
+                <button id="addSectionBtn" type="button">＋ Añadir sección</button>
+            </div>
+        </div>
+
+        <div class="card row between">
+            <div class="row">
+                <button id="saveBtn" type="button" class="primary">Guardar</button>
+                <button id="toggleJsonBtn" type="button">Ver JSON</button>
+            </div>
+            <span id="versionLabel" class="empty-hint"></span>
+        </div>
+
+        <div id="jsonPanel" class="card">
+            <label>Definición actual (lo que se enviará al guardar)</label>
+            <pre id="jsonView"></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    // El servidor sustituye este marcador por el JWT de quien abrió la página (ver
+    // WebRoutes.kt). Un WebView sólo adjunta el Authorization header a la petición
+    // INICIAL que carga este HTML, así que los fetch() posteriores necesitan el token
+    // por su cuenta — de ahí que viaje incrustado aquí. Nunca lo imprimimos en consola
+    // ni lo mandamos a ningún sitio que no sea nuestro propio origen.
+    const TOKEN = "__BOOTSTRAP_TOKEN__";
+
+    // Debe coincidir exactamente con ScreenTaxonomy.SECTION_TYPES en
+    // core/src/commonMain/kotlin/com/neovita/shared/network/dto/ScreenDto.kt.
+    const SECTION_TYPES = ["HERO_SCORE", "CARD_ROW", "CARD_LIST", "QUOTE_BANNER", "CONTENT_FEED"];
+    // Debe coincidir con ScreenTaxonomy.ACTION_TYPES (mismo archivo).
+    const ACTION_TYPES = ["NAVIGATE", "OPEN_URL", "OPEN_WEBVIEW"];
+    const DEFAULT_SLUG = "dashboard";
+
+    // slug -> ScreenDefinitionDto tal como llegó del servidor (se refresca tras cada guardado).
+    let screens = {};
+    let currentSlug = null;
+    // Copia de trabajo de las secciones de currentSlug; es lo que se edita y lo que
+    // viaja en el PUT. Se descarta si el usuario cambia de pantalla sin guardar.
+    let workingSections = [];
+    let busy = false;
+    let jsonVisible = false;
+
+    const qs = (sel) => document.querySelector(sel);
+
+    function el(tag, attrs, ...children) {
+        const node = document.createElement(tag);
+        if (attrs) {
+            for (const [key, value] of Object.entries(attrs)) {
+                if (value == null) continue; // skip null/undefined — setAttribute would stringify to "null"
+                if (key === "class") node.className = value;
+                else if (key === "text") node.textContent = value;
+                else if (key.startsWith("on") && typeof value === "function") {
+                    node.addEventListener(key.slice(2), value);
+                } else {
+                    node.setAttribute(key, value);
+                }
+            }
+        }
+        children.flat().forEach((child) => {
+            if (child == null) return;
+            node.appendChild(typeof child === "string" ? document.createTextNode(child) : child);
+        });
+        return node;
+    }
+
+    function deepClone(value) {
+        return JSON.parse(JSON.stringify(value));
+    }
+
+    function showMessage(text, kind) {
+        const box = qs("#message");
+        box.textContent = text;
+        box.className = kind; // "success" | "error"
+    }
+
+    function clearMessage() {
+        const box = qs("#message");
+        box.textContent = "";
+        box.className = "";
+    }
+
+    // Desactiva todos los botones y los selectores estructurales mientras haya una
+    // petición en curso, tal como pide el spec ("Buttons disabled while a request is
+    // in flight"). Los campos de texto se dejan editables: no forman parte de ninguna
+    // petición hasta que se pulsa Guardar.
+    function setBusy(value) {
+        busy = value;
+        document.querySelectorAll("button").forEach((b) => { b.disabled = value; });
+        qs("#slugSelect").disabled = value;
+        qs("#newSectionType").disabled = value;
+    }
+
+    // --- Carga inicial -------------------------------------------------------------
+
+    async function loadScreens() {
+        clearMessage();
+        try {
+            const res = await fetch("/api/screens", {
+                headers: { "Authorization": "Bearer " + TOKEN },
+            });
+            if (!res.ok) {
+                showMessage("No se pudieron cargar las pantallas (HTTP " + res.status + ").", "error");
+                return;
+            }
+            const list = await res.json(); // ScreenDefinitionDto[]
+            screens = {};
+            list.forEach((def) => { screens[def.slug] = def; });
+
+            const select = qs("#slugSelect");
+            select.innerHTML = "";
+            const slugs = Object.keys(screens).sort();
+            if (slugs.length === 0) {
+                showMessage("No hay pantallas registradas todavía.", "error");
+                qs("#editorArea").style.display = "none";
+                return;
+            }
+            slugs.forEach((slug) => select.appendChild(el("option", { value: slug, text: slug })));
+
+            const initial = slugs.includes(DEFAULT_SLUG) ? DEFAULT_SLUG : slugs[0];
+            select.value = initial;
+            selectSlug(initial);
+        } catch (err) {
+            showMessage("No se pudo conectar con el servidor.", "error");
+        }
+    }
+
+    function selectSlug(slug) {
+        currentSlug = slug;
+        // GET /api/screens ya devuelve la definición completa de cada pantalla (no sólo
+        // el slug), así que "cargar esa pantalla" es tomar la copia local — sin una
+        // segunda petición.
+        workingSections = deepClone(screens[slug].sections);
+        clearMessage();
+        renderAll();
+    }
+
+    // --- Render ----------------------------------------------------------------------
+
+    function renderAll() {
+        renderSections();
+        renderJson();
+        updateVersionLabel();
+    }
+
+    function updateVersionLabel() {
+        const def = screens[currentSlug];
+        qs("#versionLabel").textContent = def ? "Versión guardada: " + def.version : "";
+    }
+
+    function renderJson() {
+        qs("#jsonView").textContent = JSON.stringify({ sections: workingSections }, null, 2);
+    }
+
+    function renderSections() {
+        const list = qs("#sectionsList");
+        list.innerHTML = "";
+        if (workingSections.length === 0) {
+            list.appendChild(el("p", { class: "empty-hint" }, "Esta pantalla no tiene secciones todavía."));
+        }
+        workingSections.forEach((section, index) => {
+            list.appendChild(renderSectionCard(section, index));
+        });
+    }
+
+    function renderSectionCard(section, index) {
+        // `disabled` is set as a real DOM property (not via el()'s attrs, which would
+        // stringify `null` into the literal attribute "null" and disable every button).
+        const upBtn = el("button", { class: "small", type: "button", onclick: () => moveSection(index, -1) }, "↑ Subir");
+        upBtn.disabled = index === 0;
+        const downBtn = el("button", { class: "small", type: "button", onclick: () => moveSection(index, 1) }, "↓ Bajar");
+        downBtn.disabled = index === workingSections.length - 1;
+
+        const header = el("div", { class: "section-header" },
+            el("div", {},
+                el("span", { class: "type-badge", text: section.type }),
+                el("span", { class: "section-title-preview", text: section.title || section.text || "" })
+            ),
+            el("div", { class: "section-controls" },
+                upBtn,
+                downBtn,
+                el("button", { class: "small danger", type: "button", onclick: () => removeSection(index) }, "Eliminar")
+            )
+        );
+
+        const body = el("div", { class: "section-body" });
+        renderSectionFields(body, section);
+
+        return el("div", { class: "section-card" }, header, body);
+    }
+
+    // Campos editables según el tipo, tal como pide el spec:
+    //   title    -> CARD_ROW / CARD_LIST / CONTENT_FEED
+    //   text     -> QUOTE_BANNER
+    //   category -> CONTENT_FEED
+    //   cards    -> CARD_ROW / CARD_LIST
+    // HERO_SCORE no tiene campos editables.
+    function renderSectionFields(body, section) {
+        const showsTitle = ["CARD_ROW", "CARD_LIST", "CONTENT_FEED"].includes(section.type);
+        const showsText = section.type === "QUOTE_BANNER";
+        const showsCategory = section.type === "CONTENT_FEED";
+        const showsCards = section.type === "CARD_ROW" || section.type === "CARD_LIST";
+
+        if (showsTitle) {
+            const label = el("label", { text: "Título" });
+            const input = el("input", { type: "text", value: section.title || "" });
+            input.value = section.title || "";
+            input.addEventListener("input", () => {
+                section.title = input.value;
+                updateSectionPreview(body, section);
+                renderJson();
+            });
+            body.appendChild(label);
+            body.appendChild(input);
+        }
+
+        if (showsText) {
+            const label = el("label", { text: "Texto (máx. 200 caracteres)" });
+            const textarea = el("textarea", {});
+            textarea.value = section.text || "";
+            textarea.addEventListener("input", () => {
+                section.text = textarea.value;
+                updateSectionPreview(body, section);
+                renderJson();
+            });
+            body.appendChild(label);
+            body.appendChild(textarea);
+        }
+
+        if (showsCategory) {
+            const label = el("label", { text: "Categoría (opcional — filtra content_items)" });
+            const input = el("input", { type: "text" });
+            input.value = section.category || "";
+            input.addEventListener("input", () => {
+                section.category = input.value || null;
+                renderJson();
+            });
+            body.appendChild(label);
+            body.appendChild(input);
+        }
+
+        if (!showsTitle && !showsText && !showsCategory && !showsCards) {
+            body.appendChild(el("p", { class: "empty-hint" }, "Sin campos editables."));
+        }
+
+        if (showsCards) {
+            body.appendChild(renderCardsEditor(section));
+        }
+    }
+
+    function updateSectionPreview(body, section) {
+        const card = body.closest(".section-card");
+        const preview = card.querySelector(".section-title-preview");
+        preview.textContent = section.title || section.text || "";
+    }
+
+    function renderCardsEditor(section) {
+        const wrap = el("div", { class: "cards-editor" });
+        wrap.appendChild(el("label", { text: "Tarjetas" }));
+        section.cards.forEach((card, cardIndex) => {
+            wrap.appendChild(renderCardItem(section, card, cardIndex));
+        });
+        wrap.appendChild(el("button", {
+            class: "small", type: "button",
+            onclick: () => {
+                section.cards.push(newCard());
+                renderSections();
+                renderJson();
+            }
+        }, "＋ Añadir tarjeta"));
+        return wrap;
+    }
+
+    function renderCardItem(section, card, cardIndex) {
+        const removeBtn = el("button", {
+            class: "small danger", type: "button",
+            onclick: () => {
+                section.cards.splice(cardIndex, 1);
+                renderSections();
+                renderJson();
+            }
+        }, "Eliminar tarjeta");
+
+        const fields = el("div", { class: "card-fields" });
+
+        function textField(labelText, key, full) {
+            const label = el("label", { text: labelText, class: full ? "full" : "" });
+            const input = el("input", { type: "text", class: full ? "full" : "" });
+            input.value = card[key] || "";
+            input.addEventListener("input", () => {
+                card[key] = input.value || (key === "title" ? "" : null);
+                renderJson();
+            });
+            const group = el("div", { class: full ? "full" : "" }, label, input);
+            return group;
+        }
+
+        fields.appendChild(textField("Título", "title", true));
+        fields.appendChild(textField("Subtítulo", "subtitle", false));
+        fields.appendChild(textField("Badge", "badge", false));
+        fields.appendChild(textField("Imagen (URL)", "imageUrl", true));
+        fields.appendChild(textField("Meta", "meta", true));
+
+        // Acción: tipo + target. "" = sin acción (card.action = null).
+        const actionLabel = el("label", { text: "Acción" });
+        const actionType = el("select", {});
+        actionType.appendChild(el("option", { value: "" }, "— Ninguna —"));
+        ACTION_TYPES.forEach((t) => actionType.appendChild(el("option", { value: t }, t)));
+        actionType.value = card.action ? card.action.type : "";
+
+        const targetInput = el("input", {
+            type: "text",
+            placeholder: "target (ruta, URL https:// o pantalla home/chat/plan/profile)",
+        });
+        targetInput.value = card.action ? card.action.target : "";
+        targetInput.style.display = card.action ? "block" : "none";
+
+        actionType.addEventListener("change", () => {
+            if (actionType.value === "") {
+                card.action = null;
+                targetInput.style.display = "none";
+            } else {
+                card.action = { type: actionType.value, target: targetInput.value || "" };
+                targetInput.style.display = "block";
+            }
+            renderJson();
+        });
+        targetInput.addEventListener("input", () => {
+            if (card.action) card.action.target = targetInput.value;
+            renderJson();
+        });
+
+        return el("div", { class: "card-item" },
+            el("div", { class: "row between" }, el("strong", {}, "Tarjeta " + (cardIndex + 1)), removeBtn),
+            fields,
+            actionLabel,
+            actionType,
+            targetInput
+        );
+    }
+
+    function newSection(type) {
+        return { type: type, title: "", cards: [], text: "", category: null };
+    }
+
+    function newCard() {
+        return { title: "", subtitle: "", imageUrl: "", badge: "", meta: "", action: null };
+    }
+
+    function moveSection(index, delta) {
+        const target = index + delta;
+        if (target < 0 || target >= workingSections.length) return;
+        const [section] = workingSections.splice(index, 1);
+        workingSections.splice(target, 0, section);
+        renderSections();
+        renderJson();
+    }
+
+    function removeSection(index) {
+        workingSections.splice(index, 1);
+        renderSections();
+        renderJson();
+    }
+
+    // --- Guardar -----------------------------------------------------------------
+
+    async function save() {
+        if (!currentSlug || busy) return;
+        setBusy(true);
+        clearMessage();
+        try {
+            const res = await fetch("/api/screens/" + encodeURIComponent(currentSlug), {
+                method: "PUT",
+                headers: {
+                    "Authorization": "Bearer " + TOKEN,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ sections: workingSections }),
+            });
+            const bodyText = await res.text();
+            let data = null;
+            try { data = bodyText ? JSON.parse(bodyText) : null; } catch (e) { data = null; }
+
+            if (res.ok) {
+                // El servidor es la frontera de confianza: sólo afirmamos éxito con un 2xx,
+                // y lo que mostramos es la versión que ÉL devolvió, no un cálculo local.
+                screens[currentSlug] = data;
+                workingSections = deepClone(data.sections);
+                showMessage("Guardado — versión " + data.version, "success");
+                renderAll();
+            } else {
+                // 400 trae {"code":"INVALID_SCREEN","message":<razón>} — se muestra tal cual,
+                // porque el servidor es quien decide si la definición es válida.
+                const reason = (data && data.message) ? data.message : ("Error al guardar (HTTP " + res.status + ")");
+                showMessage(reason, "error");
+            }
+        } catch (err) {
+            showMessage("No se pudo conectar con el servidor. Nada se guardó.", "error");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    // --- Wiring --------------------------------------------------------------------
+
+    qs("#slugSelect").addEventListener("change", (e) => selectSlug(e.target.value));
+    qs("#reloadBtn").addEventListener("click", () => loadScreens());
+    qs("#addSectionBtn").addEventListener("click", () => {
+        const type = qs("#newSectionType").value;
+        workingSections.push(newSection(type));
+        renderSections();
+        renderJson();
+    });
+    qs("#saveBtn").addEventListener("click", save);
+    qs("#toggleJsonBtn").addEventListener("click", () => {
+        jsonVisible = !jsonVisible;
+        qs("#jsonPanel").style.display = jsonVisible ? "block" : "none";
+        qs("#toggleJsonBtn").textContent = jsonVisible ? "Ocultar JSON" : "Ver JSON";
+        if (jsonVisible) renderJson();
+    });
+
+    loadScreens();
+})();
+</script>
+</body>
+</html>
