@@ -31,6 +31,7 @@ import com.neovita.app.health.HealthSyncState
 import com.neovita.app.screens.login.LoginScreen
 import com.neovita.app.screens.admin.ContentAdminScreen
 import com.neovita.app.screens.assessment.AssessmentScreen
+import com.neovita.app.screens.web.WebContentScreen
 import com.neovita.app.ui.assets.profileAvatarModel
 import com.neovita.app.ui.theme.*
 import com.neovita.shared.config.RemoteConfigRepository
@@ -368,6 +369,16 @@ class ProfileScreen : Screen {
                             icon = "🗂️",
                             title = "Administrar contenido",
                             onClick = { navigator.parent?.push(ContentAdminScreen()) }
+                        )
+                        HorizontalDivider(color = NeoDarkSurface2)
+                        SettingsItem(
+                            icon = "🎛️",
+                            title = "Editar pantallas",
+                            onClick = {
+                                navigator.parent?.push(
+                                    WebContentScreen(title = "Editar pantallas", url = "/web/admin/screens")
+                                )
+                            }
                         )
                         HorizontalDivider(color = NeoDarkSurface2)
                     }
