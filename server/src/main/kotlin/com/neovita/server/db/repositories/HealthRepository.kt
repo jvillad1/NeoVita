@@ -6,6 +6,7 @@ import com.neovita.shared.network.dto.DailyHealthMetricDto
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -58,6 +59,26 @@ class HealthRepository {
             avgSleepMinutes = avg(rows.mapNotNull { it[HealthMetricsTable.sleepMinutes] }),
             avgHeartRate = avg(rows.mapNotNull { it[HealthMetricsTable.avgHeartRate] })
         )
+    }
+
+    /** Resúmenes de varios usuarios en una consulta; misma ventana de recencia que summary(). */
+    fun summariesFor(userIds: List<String>, days: Int = 7): Map<String, HealthSummary> {
+        if (userIds.isEmpty()) return emptyMap()
+        return transaction {
+            HealthMetricsTable.selectAll()
+                .where { (HealthMetricsTable.userId inList userIds) and (HealthMetricsTable.date greaterEq recencyCutoff()) }
+                .orderBy(HealthMetricsTable.date, SortOrder.DESC)
+                .groupBy { it[HealthMetricsTable.userId] }
+                .mapValues { (_, rows) ->
+                    val recent = rows.take(days)
+                    fun avg(values: List<Int>): Int? = if (values.isEmpty()) null else values.sum() / values.size
+                    HealthSummary(
+                        avgDailySteps = avg(recent.mapNotNull { it[HealthMetricsTable.steps] }),
+                        avgSleepMinutes = avg(recent.mapNotNull { it[HealthMetricsTable.sleepMinutes] }),
+                        avgHeartRate = avg(recent.mapNotNull { it[HealthMetricsTable.avgHeartRate] })
+                    )
+                }
+        }
     }
 
     fun daysWithData(userId: String, days: Int = 7): Int = transaction {
