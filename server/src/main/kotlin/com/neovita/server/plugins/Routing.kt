@@ -49,7 +49,7 @@ fun Application.configureRouting(
             chatRoutes(claudeService)
             b2bRoutes(userRepo, assessmentRepo)
             contentRoutes(contentRepo, userRepo)
-            screenRoutes(screenRepo)
+            screenRoutes(screenRepo, userRepo)
             deviceRoutes(deviceTokenRepo)
             pushRoutes(pushService, deviceTokenRepo, userRepo)
             healthRoutes(healthRepo)
