@@ -221,6 +221,36 @@ class ScreenRoutesTest {
     }
 
     @Test
+    fun `a slug that overflows the column is rejected with 400`() = testApplication {
+        environment { config = testConfig("screens_test_put_slug_toolong") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.put("/api/screens/${"a".repeat(70)}") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `a slug with disallowed characters is rejected with 400`() = testApplication {
+        environment { config = testConfig("screens_test_put_slug_badchars") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.put("/api/screens/Bad_Slug!") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
     fun `employer lists the screens`() = testApplication {
         environment { config = testConfig("screens_test_list") }
         application { module() }

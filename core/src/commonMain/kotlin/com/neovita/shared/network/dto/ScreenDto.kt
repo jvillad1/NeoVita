@@ -74,6 +74,9 @@ fun validateScreenSections(sections: List<SectionDto>): String? {
         section.text?.let {
             if (it.length > MAX_TEXT) return "El texto de $where supera $MAX_TEXT caracteres"
         }
+        section.category?.let {
+            if (it.length > MAX_TEXT) return "La categoría de $where supera $MAX_TEXT caracteres"
+        }
         if (section.cards.size > MAX_CARDS_PER_SECTION) {
             return "Demasiadas tarjetas en $where (máximo $MAX_CARDS_PER_SECTION)"
         }
@@ -81,6 +84,23 @@ fun validateScreenSections(sections: List<SectionDto>): String? {
             val cardWhere = "tarjeta ${cardIndex + 1} de $where"
             if (card.title.isBlank()) return "La $cardWhere no tiene título"
             if (card.title.length > MAX_TEXT) return "El título de la $cardWhere supera $MAX_TEXT caracteres"
+            card.subtitle?.let {
+                if (it.length > MAX_TEXT) return "El subtítulo de la $cardWhere supera $MAX_TEXT caracteres"
+            }
+            card.badge?.let {
+                if (it.length > MAX_TEXT) return "El badge de la $cardWhere supera $MAX_TEXT caracteres"
+            }
+            card.meta?.let {
+                if (it.length > MAX_TEXT) return "El meta de la $cardWhere supera $MAX_TEXT caracteres"
+            }
+            // La imagen la descarga el dispositivo de CADA usuaria, así que una URL a un host
+            // arbitrario es un pixel de rastreo sobre toda la base — exigir https y validar
+            // el esquema es lo mínimo.
+            card.imageUrl?.let {
+                if (it.isNotBlank() && !it.startsWith("https://")) {
+                    return "La imagen de la $cardWhere debe usar https"
+                }
+            }
             card.action?.let { action ->
                 if (!isValidAction(action)) {
                     return "Acción inválida en la $cardWhere: ${action.type} → ${action.target}"
