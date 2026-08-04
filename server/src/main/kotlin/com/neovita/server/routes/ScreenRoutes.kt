@@ -53,7 +53,22 @@ fun Route.screenRoutes(repo: ScreenRepository, userRepository: UserRepository) {
                 )
             }
             // If-Match lleva la versión que el editor tenía cargada; si no viene, se fuerza.
-            val expected = call.request.headers[HttpHeaders.IfMatch]?.toIntOrNull()
+            // Se acepta la forma con comillas ("3") y la débil (W/"3") además del entero
+            // desnudo: un cliente que use ETags como manda la especificación no debe perder
+            // en silencio la protección contra escrituras pisadas. Un valor presente pero
+            // ilegible es un error del cliente (400), NO un permiso para forzar.
+            val ifMatch = call.request.headers[HttpHeaders.IfMatch]
+            val expected: Int?
+            if (ifMatch == null || ifMatch == "*") {
+                expected = null
+            } else {
+                expected = ifMatch.removePrefix("W/").trim('"').toIntOrNull()
+                    ?: return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("code" to "INVALID_IF_MATCH",
+                              "message" to "If-Match debe ser la versión de la pantalla (por ejemplo 3 o \"3\")")
+                    )
+            }
             val saved = repo.save(slug, body.sections, expected)
                 ?: return@put call.respond(
                     HttpStatusCode.Conflict,
