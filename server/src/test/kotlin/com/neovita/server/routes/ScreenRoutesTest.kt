@@ -264,4 +264,84 @@ class ScreenRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
         assertTrue(response.bodyAsText().contains("dashboard"), response.bodyAsText())
     }
+
+    @Test
+    fun `a stale If-Match is rejected with 409 instead of clobbering`() = testApplication {
+        environment { config = testConfig("screens_test_conflict") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        // Primer guardado: la pantalla pasa a versión 2.
+        val first = client.put("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header(HttpHeaders.IfMatch, "1")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.OK, first.status)
+
+        // Segundo editor que venía de la versión 1: su escritura NO debe pisar la anterior.
+        val stale = client.put("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header(HttpHeaders.IfMatch, "1")
+            contentType(ContentType.Application.Json)
+            setBody("""{"sections":[{"type":"QUOTE_BANNER","text":"pisada"}]}""")
+        }
+        assertEquals(HttpStatusCode.Conflict, stale.status)
+
+        // Lo guardado sigue siendo lo del primer editor.
+        val after = client.get("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }.bodyAsText()
+        assertTrue(after.contains("Página demo"), after)
+        assertTrue(!after.contains("pisada"), after)
+    }
+
+    @Test
+    fun `without If-Match the save still forces through`() = testApplication {
+        environment { config = testConfig("screens_test_force") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.put("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `saving republishes a screen so an edit can't succeed invisibly`() = testApplication {
+        environment { config = testConfig("screens_test_republish") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        // Una pantalla desactivada no la sirve getActive...
+        transaction {
+            ScreensTable.update({ ScreensTable.slug eq "dashboard" }) { it[active] = false }
+        }
+        assertEquals(
+            HttpStatusCode.NotFound,
+            client.get("/api/screens/dashboard") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+            }.status
+        )
+
+        // ...pero guardarla la vuelve a publicar.
+        client.put("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(
+            HttpStatusCode.OK,
+            client.get("/api/screens/dashboard") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+            }.status
+        )
+    }
 }
