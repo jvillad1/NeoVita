@@ -24,10 +24,12 @@ fun Route.b2bRoutes(userRepository: UserRepository, assessmentRepo: AssessmentRe
         get("/b2b/team") {
             if (!call.requireRole(userRepository, "EMPLOYER")) return@get
             val user = userRepository.findById(call.principal<UserIdPrincipal>()!!.name)!!
-            val team = userRepository.findByCompany(user.companyId!!).map { member ->
+            val members = userRepository.findByCompany(user.companyId!!)
+            val scoresByUser = assessmentRepo.latestScoresFor(members.map { it.id })
+            val team = members.map { member ->
                 TeamMemberDto(
                     userId = member.id, name = member.name, email = member.email,
-                    scores = assessmentRepo.findLatest(member.id)?.scores
+                    scores = scoresByUser[member.id]
                 )
             }
             val avgScore = team.mapNotNull { it.scores?.overall }
