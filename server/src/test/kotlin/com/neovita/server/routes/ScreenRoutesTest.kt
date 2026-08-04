@@ -1,8 +1,10 @@
 package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.ScreenRepository
+import com.neovita.server.db.repositories.UserRepository
 import com.neovita.server.db.SEED_SCREENS
 import com.neovita.server.db.tables.ScreensTable
+import com.neovita.server.db.tables.UsersTable
 import com.neovita.server.module
 import com.neovita.server.services.JwtService
 import io.ktor.client.plugins.contentnegotiation.*
@@ -50,6 +52,13 @@ class ScreenRoutesTest {
         "claude.apiKey" to "dummy-key",
         "claude.model" to "dummy-model",
     )
+
+    /** Creates a user and promotes it to EMPLOYER; returns its id. */
+    private fun employer(): String {
+        val user = UserRepository().upsert("admin@test.dev", "Admin")
+        transaction { UsersTable.update({ UsersTable.id eq user.id }) { it[role] = "EMPLOYER" } }
+        return user.id
+    }
 
     @Test
     fun `screen 200 with seeded dashboard`() = testApplication {
@@ -138,5 +147,121 @@ class ScreenRoutesTest {
         }
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
         assertEquals(7, body["version"]?.jsonPrimitive?.int)
+    }
+
+    private val validBody = """
+        {"sections":[
+          {"type":"HERO_SCORE"},
+          {"type":"CARD_ROW","title":"Novedades","cards":[
+            {"title":"Página demo","action":{"type":"OPEN_WEBVIEW","target":"/web/demo"}}
+          ]}
+        ]}
+    """.trimIndent()
+
+    @Test
+    fun `employer updates a screen and the version bumps`() = testApplication {
+        environment { config = testConfig("screens_test_put") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val before = client.get("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }.bodyAsText()
+        val beforeVersion = Json.parseToJsonElement(before).jsonObject["version"]!!.jsonPrimitive.int
+
+        val put = client.put("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.OK, put.status)
+        val newVersion = Json.parseToJsonElement(put.bodyAsText()).jsonObject["version"]!!.jsonPrimitive.int
+        assertEquals(beforeVersion + 1, newVersion)
+
+        // Lo guardado es lo que se lee después.
+        val after = client.get("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }.bodyAsText()
+        assertTrue(after.contains("Página demo"), after)
+        assertTrue(after.contains("\"version\":$newVersion"), after)
+    }
+
+    @Test
+    fun `an invalid definition is rejected with the reason`() = testApplication {
+        environment { config = testConfig("screens_test_put_invalid") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.put("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"sections":[{"type":"MYSTERY_MEAT"}]}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("MYSTERY_MEAT"), response.bodyAsText())
+    }
+
+    @Test
+    fun `a non-employer cannot update a screen`() = testApplication {
+        environment { config = testConfig("screens_test_put_role") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val user = UserRepository().upsert("plain@test.dev", "Plain")
+        val token = jwtService.generateToken(user.id, "USER")
+
+        val response = client.put("/api/screens/dashboard") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `a slug that overflows the column is rejected with 400`() = testApplication {
+        environment { config = testConfig("screens_test_put_slug_toolong") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.put("/api/screens/${"a".repeat(70)}") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `a slug with disallowed characters is rejected with 400`() = testApplication {
+        environment { config = testConfig("screens_test_put_slug_badchars") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.put("/api/screens/Bad_Slug!") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json); setBody(validBody)
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `employer lists the screens`() = testApplication {
+        environment { config = testConfig("screens_test_list") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.get("/api/screens") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(response.bodyAsText().contains("dashboard"), response.bodyAsText())
     }
 }

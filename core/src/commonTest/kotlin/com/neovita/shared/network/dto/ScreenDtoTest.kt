@@ -4,6 +4,8 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class ScreenDtoTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -69,5 +71,87 @@ class ScreenDtoTest {
         assertNull(cards[2].action)
         assertNull(cards[3].action)
         assertNull(cards[4].action)
+    }
+
+    private fun card(title: String = "Card", action: ActionDto? = null) =
+        CardDto(title = title, action = action)
+
+    @Test fun `a well-formed screen validates`() {
+        val sections = listOf(
+            SectionDto(type = "HERO_SCORE"),
+            SectionDto(type = "CARD_ROW", title = "Novedades", cards = listOf(
+                card(action = ActionDto("OPEN_WEBVIEW", "/web/demo")),
+                card(action = ActionDto("NAVIGATE", "plan")),
+            )),
+            SectionDto(type = "QUOTE_BANNER", text = "Hola"),
+        )
+        assertNull(validateScreenSections(sections))
+    }
+
+    @Test fun `an unknown section type is rejected`() {
+        val error = validateScreenSections(listOf(SectionDto(type = "MYSTERY_MEAT")))
+        assertNotNull(error)
+        assertTrue(error.contains("MYSTERY_MEAT"), error)
+    }
+
+    @Test fun `an invalid action target is rejected`() {
+        val error = validateScreenSections(listOf(
+            SectionDto(type = "CARD_ROW", cards = listOf(card(action = ActionDto("OPEN_URL", "http://inseguro"))))
+        ))
+        assertNotNull(error)
+    }
+
+    @Test fun `a protocol-relative webview target is rejected`() {
+        val error = validateScreenSections(listOf(
+            SectionDto(type = "CARD_ROW", cards = listOf(card(action = ActionDto("OPEN_WEBVIEW", "//evil.example"))))
+        ))
+        assertNotNull(error)
+    }
+
+    @Test fun `a blank card title is rejected`() {
+        val error = validateScreenSections(listOf(
+            SectionDto(type = "CARD_ROW", cards = listOf(card(title = "   ")))
+        ))
+        assertNotNull(error)
+    }
+
+    @Test fun `an empty screen is rejected`() {
+        assertNotNull(validateScreenSections(emptyList()))
+    }
+
+    @Test fun `too many sections are rejected`() {
+        val many = List(21) { SectionDto(type = "HERO_SCORE") }
+        assertNotNull(validateScreenSections(many))
+    }
+
+    @Test fun `too many cards in one section are rejected`() {
+        val section = SectionDto(type = "CARD_ROW", cards = List(31) { card() })
+        assertNotNull(validateScreenSections(listOf(section)))
+    }
+
+    @Test fun `an over-long title is rejected`() {
+        val section = SectionDto(type = "CARD_ROW", title = "x".repeat(201), cards = listOf(card()))
+        assertNotNull(validateScreenSections(listOf(section)))
+    }
+
+    @Test fun `an over-long subtitle is rejected`() {
+        val section = SectionDto(type = "CARD_ROW", cards = listOf(
+            CardDto(title = "Card", subtitle = "x".repeat(201))
+        ))
+        assertNotNull(validateScreenSections(listOf(section)))
+    }
+
+    @Test fun `a card with an insecure image url is rejected`() {
+        val section = SectionDto(type = "CARD_ROW", cards = listOf(
+            CardDto(title = "Card", imageUrl = "http://x")
+        ))
+        assertNotNull(validateScreenSections(listOf(section)))
+    }
+
+    @Test fun `a card with an https image url is accepted`() {
+        val section = SectionDto(type = "CARD_ROW", cards = listOf(
+            CardDto(title = "Card", imageUrl = "https://x")
+        ))
+        assertNull(validateScreenSections(listOf(section)))
     }
 }
