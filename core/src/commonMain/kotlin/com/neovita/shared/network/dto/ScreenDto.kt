@@ -23,6 +23,7 @@ import kotlinx.serialization.Serializable
     val action: ActionDto? = null,
 )
 @Serializable data class ActionDto(val type: String, val target: String)  // NAVIGATE|OPEN_URL|OPEN_WEBVIEW
+@Serializable data class ScreenUpdateRequest(val sections: List<SectionDto> = emptyList())
 
 object ScreenTaxonomy {
     val SECTION_TYPES = listOf("HERO_SCORE", "CARD_ROW", "CARD_LIST", "QUOTE_BANNER", "CONTENT_FEED")
