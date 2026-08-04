@@ -35,6 +35,14 @@ fun Route.screenRoutes(repo: ScreenRepository, userRepository: UserRepository) {
         put("/screens/{slug}") {
             if (!call.requireRole(userRepository, "EMPLOYER")) return@put
             val slug = call.parameters["slug"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+            // El slug entra en varchar(64) y crea filas nuevas: acotarlo evita un 500 por
+            // desbordar la columna y basura arbitraria en la tabla.
+            if (!slug.matches(Regex("^[a-z0-9-]{1,64}$"))) {
+                return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("code" to "INVALID_SCREEN", "message" to "Slug inválido: sólo minúsculas, números y guiones (máx. 64)")
+                )
+            }
             val body = call.receive<ScreenUpdateRequest>()
             // El servidor es la frontera de confianza: el editor valida por comodidad,
             // pero lo que decide es esto.

@@ -133,4 +133,25 @@ class ScreenDtoTest {
         val section = SectionDto(type = "CARD_ROW", title = "x".repeat(201), cards = listOf(card()))
         assertNotNull(validateScreenSections(listOf(section)))
     }
+
+    @Test fun `an over-long subtitle is rejected`() {
+        val section = SectionDto(type = "CARD_ROW", cards = listOf(
+            CardDto(title = "Card", subtitle = "x".repeat(201))
+        ))
+        assertNotNull(validateScreenSections(listOf(section)))
+    }
+
+    @Test fun `a card with an insecure image url is rejected`() {
+        val section = SectionDto(type = "CARD_ROW", cards = listOf(
+            CardDto(title = "Card", imageUrl = "http://x")
+        ))
+        assertNotNull(validateScreenSections(listOf(section)))
+    }
+
+    @Test fun `a card with an https image url is accepted`() {
+        val section = SectionDto(type = "CARD_ROW", cards = listOf(
+            CardDto(title = "Card", imageUrl = "https://x")
+        ))
+        assertNull(validateScreenSections(listOf(section)))
+    }
 }

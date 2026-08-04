@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' https:;">
 <title>NeoVita — Editor de pantallas</title>
 <style>
     /* Estilo cercano al de la app: fondo gris claro, acento NeoCrimson, tarjetas
@@ -247,6 +248,10 @@
     // --- Carga inicial -------------------------------------------------------------
 
     async function loadScreens() {
+        // Puede dispararse por la carga inicial o por "Recargar" mientras un save() está
+        // en curso; sin esta guarda ambas peticiones pisan workingSections a la vez.
+        if (busy) return;
+        setBusy(true);
         clearMessage();
         try {
             const res = await fetch("/api/screens", {
@@ -275,6 +280,8 @@
             selectSlug(initial);
         } catch (err) {
             showMessage("No se pudo conectar con el servidor.", "error");
+        } finally {
+            setBusy(false);
         }
     }
 
@@ -517,6 +524,26 @@
 
     // --- Guardar -----------------------------------------------------------------
 
+    // "" en un campo opcional significa "sin tocar" desde la UI, no "poner un valor
+    // vacío": si se guarda tal cual, el renderer dibuja un encabezado/subtítulo en
+    // blanco. Normalizamos a null antes de enviar, sólo para el PUT — no muta
+    // workingSections, que sigue reflejando lo que hay en los inputs.
+    function normalizeForSave(sections) {
+        return sections.map((section) => ({
+            ...section,
+            title: section.title || null,
+            text: section.text || null,
+            category: section.category || null,
+            cards: (section.cards || []).map((card) => ({
+                ...card,
+                subtitle: card.subtitle || null,
+                imageUrl: card.imageUrl || null,
+                badge: card.badge || null,
+                meta: card.meta || null,
+            })),
+        }));
+    }
+
     async function save() {
         if (!currentSlug || busy) return;
         setBusy(true);
@@ -528,7 +555,7 @@
                     "Authorization": "Bearer " + TOKEN,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ sections: workingSections }),
+                body: JSON.stringify({ sections: normalizeForSave(workingSections) }),
             });
             const bodyText = await res.text();
             let data = null;

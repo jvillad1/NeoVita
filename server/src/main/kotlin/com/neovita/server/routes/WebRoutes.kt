@@ -60,6 +60,8 @@ fun Route.webRoutes(userRepository: UserRepository) {
                 ?.removePrefix("Bearer ")?.trim().orEmpty()
             val html = javaClass.getResource("/web/screen-editor.html")!!.readText()
                 .replace("__BOOTSTRAP_TOKEN__", token)
+            // La página lleva el JWT de quien la pidió: nunca debe quedar en la caché del WebView.
+            call.response.header(HttpHeaders.CacheControl, "no-store")
             call.respondText(html, ContentType.Text.Html)
         }
     }
