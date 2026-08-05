@@ -53,6 +53,18 @@ fun Application.configureRouting(
             deviceRoutes(deviceTokenRepo)
             pushRoutes(pushService, deviceTokenRepo, userRepo)
             healthRoutes(healthRepo)
+
+            // Sin esto, una ruta /api mal escrita cae en el catch-all estático de abajo y
+            // devuelve 200 con el index.html de la web: un cliente recibe "éxito" con HTML
+            // en lugar de un 404 honesto, y un endpoint que no existe parece existir.
+            route("{...}") {
+                handle {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("code" to "NOT_FOUND", "message" to "No existe ese endpoint")
+                    )
+                }
+            }
         }
 
         // Server-rendered pages for in-app WebView slots — outside /api, before the

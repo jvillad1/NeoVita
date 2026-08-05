@@ -111,4 +111,18 @@ class WebRoutesTest {
         assertTrue(body.contains("const TOKEN = \"$token\";"), body)
         assertFalse(body.contains("__BOOTSTRAP_TOKEN__"), body)
     }
+
+    @Test
+    fun `an unknown api path is a 404, not the web app`() = testApplication {
+        environment { config = testConfig("api_404_test") }
+        application { module() }
+        startApplication()
+
+        // El catch-all estático sirve index.html para lo no reconocido; sin una ruta
+        // comodín bajo /api, un endpoint mal escrito devolvía 200 con HTML.
+        val response = client.get("/api/no-existe-este-endpoint")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertTrue(response.bodyAsText().contains("NOT_FOUND"), response.bodyAsText())
+    }
+
 }
