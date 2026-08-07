@@ -55,7 +55,7 @@ docker run -d --name neovita-db \
   -p 5432:5432 postgres:16
 export DB_URL="jdbc:postgresql://localhost:5432/neovita?user=neovita&password=secret"
 export JWT_SECRET="dev-secret-change-in-prod-min-32-chars"
-export CLAUDE_API_KEY="your-key-here"
+export ANTHROPIC_API_KEY="your-key-here"
 ./gradlew :server:run        # http://localhost:8080  (health: /health, API: /api/*)
 ```
 
@@ -84,7 +84,7 @@ The server reads `$PORT` and serves the web app at `/` with the API under `/api`
 
 1. Create a Railway project and connect this GitHub repo (it auto-detects `railway.toml`).
 2. Add a PostgreSQL plugin and set service variables: `DB_URL` (JDBC URL), `JWT_SECRET`,
-   `CLAUDE_API_KEY`.
+   `ANTHROPIC_API_KEY`.
 3. Push to the deployment branch — Railway builds & deploys. Health check: `/health`.
 
 ```bash

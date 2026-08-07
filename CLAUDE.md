@@ -70,7 +70,7 @@ Android SDK at `$ANDROID_HOME`; AVDs `Pixel_8_Pro` / `Pixel_9_Pro` (Intel x86_64
 copy into `server/src/main/resources/static` → `:server:buildFatJar` → run on
 `eclipse-temurin:17-jre-alpine`. Server binds `0.0.0.0:$PORT`, serves the web app at `/`, API
 under `/api`, health at `/health`. Required service env vars: `DB_URL` (JDBC), `JWT_SECRET`,
-`CLAUDE_API_KEY`, `GOOGLE_CLIENT_ID` (web/Android sign-in + aud check). Optional: `APP_FEATURES`,
+`ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID` (web/Android sign-in + aud check). Optional: `APP_FEATURES`,
 `MIN_VERSION_ANDROID`, `MIN_VERSION_IOS`, `MAINTENANCE_MODE` (remote config gate),
 `FIREBASE_API_KEY`/`APP_ID`/`PROJECT_ID`/`SENDER_ID` (client values, activate dormant push),
 `FIREBASE_SERVICE_ACCOUNT` (secret, enables sending). Connect the GitHub repo in Railway for

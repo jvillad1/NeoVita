@@ -22,7 +22,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.netty.*
 
-// EngineMain loads application.conf (resolving ${?DB_URL}/${?JWT_SECRET}/${?CLAUDE_API_KEY}
+// EngineMain loads application.conf (resolving ${?DB_URL}/${?JWT_SECRET}/${?ANTHROPIC_API_KEY}
 // from the environment) and binds ktor.deployment.port — which reads $PORT on Railway,
 // defaulting to 8080 locally. Host defaults to 0.0.0.0.
 fun main(args: Array<String>) = EngineMain.main(args)
