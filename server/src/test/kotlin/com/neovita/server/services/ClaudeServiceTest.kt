@@ -98,5 +98,11 @@ class ClaudeServiceTest {
         val error = runCatching { service.streamChat(listOf(ClaudeMessage("user", "x"))).toList() }
             .exceptionOrNull()
         assertTrue(error != null, "un 400 de Anthropic terminó como stream vacío en vez de lanzar")
+        // No basta con que lance: el motivo que da Anthropic tiene que llegar al log, que es
+        // lo que convirtió "el chat responde vacío" en un diagnóstico en cuestión de minutos.
+        assertTrue(
+            error is ClaudeApiException && error.detail.contains("bad model"),
+            "la excepción no lleva el motivo de Anthropic: $error"
+        )
     }
 }
