@@ -5,6 +5,7 @@ import com.neovita.shared.data.mapper.toDto
 import com.neovita.shared.domain.usecase.CalculateScoresUseCase
 import com.neovita.shared.network.dto.PillarScoresDto
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.UUID
 
@@ -55,12 +56,36 @@ class AssessmentRepository(private val healthRepository: HealthRepository? = nul
         if (userIds.isEmpty()) return emptyMap()
         val health = healthRepository?.summariesFor(userIds).orEmpty()
         return transaction {
-            AssessmentsTable.selectAll()
+            // Sólo se usa la evaluación más reciente de cada miembro, así que traer el
+            // historial completo y quedarse con la primera fila hacía que el coste del
+            // dashboard creciera con cada evaluación que alguien hubiera respondido nunca.
+            // Paso 1: el instante más reciente por usuario — una fila por usuario.
+            val newest = AssessmentsTable.createdAt.max()
+            val latestPerUser = AssessmentsTable
+                .select(AssessmentsTable.userId, newest)
                 .where { AssessmentsTable.userId inList userIds }
-                .orderBy(AssessmentsTable.createdAt, SortOrder.DESC)
+                .groupBy(AssessmentsTable.userId)
+                .mapNotNull { row ->
+                    val ts = row[newest] ?: return@mapNotNull null
+                    row[AssessmentsTable.userId] to ts
+                }
+            if (latestPerUser.isEmpty()) return@transaction emptyMap()
+
+            // Paso 2: exactamente esas filas (par usuario+instante), no el historial.
+            val onlyTheLatest = latestPerUser
+                .map { (uid, ts) ->
+                    (AssessmentsTable.userId eq uid) and (AssessmentsTable.createdAt eq ts)
+                }
+                .reduce { acc, condition -> acc or condition }
+
+            AssessmentsTable.selectAll()
+                .where(onlyTheLatest)
                 .groupBy { it[AssessmentsTable.userId] }
                 .mapValues { (userId, rows) ->
-                    val row = rows.first()
+                    // createdAt son milisegundos: dos evaluaciones del mismo usuario pueden
+                    // empatar. Desempatar por id deja el resultado estable entre peticiones
+                    // en vez de depender del orden que devuelva la base de datos.
+                    val row = rows.minByOrNull { it[AssessmentsTable.id] } ?: rows.first()
                     calculateScores(
                         row[AssessmentsTable.exerciseFrequency],
                         row[AssessmentsTable.exerciseType],
