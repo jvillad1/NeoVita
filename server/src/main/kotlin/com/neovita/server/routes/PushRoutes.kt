@@ -29,7 +29,11 @@ fun Route.pushRoutes(pushService: PushService, deviceRepo: DeviceTokenRepository
                 return@post call.respond(HttpStatusCode.BadRequest)
             }
             val tokens = req.userId?.let { deviceRepo.tokensForUser(it) } ?: deviceRepo.allTokens()
-            call.respond(PushSendResponse(sent = pushService.send(tokens, req.title, req.body, req.target)))
+            val result = pushService.send(tokens, req.title, req.body, req.target)
+            // Dar de baja aquí y no dentro de PushService: el servicio no sabe de base de
+            // datos, y así la poda ocurre en el mismo sitio en cada envío futuro.
+            val pruned = deviceRepo.delete(result.dead)
+            call.respond(PushSendResponse(sent = result.sent, pruned = pruned))
         }
     }
 }
