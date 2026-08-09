@@ -10,6 +10,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
@@ -62,13 +63,20 @@ class ScreenRepository {
 
         if (current == null) {
             if (expectedVersion != null) return@transaction null   // esperaba una fila que no existe
-            ScreensTable.insert {
+            // Entre el SELECT de arriba y este INSERT, otra petición puede haber creado el
+            // mismo slug. Con un insert normal eso era una violación de clave -> 500. Se usa
+            // insertIgnore y no un try/catch porque en Postgres una violación aborta la
+            // transacción entera: capturar el error dejaría la transacción inservible.
+            // Cero filas insertadas = alguien se adelantó, que es exactamente el 409 que la
+            // ruta ya devuelve para null ("otra persona guardó mientras editabas").
+            val inserted = ScreensTable.insertIgnore {
                 it[ScreensTable.slug] = slug
                 it[version] = 1
                 it[sectionsJson] = encoded
                 it[active] = true
                 it[updatedAt] = now
             }
+            if (inserted.insertedCount == 0) return@transaction null
             return@transaction ScreenDefinitionDto(slug = slug, version = 1, sections = sections)
         }
 
