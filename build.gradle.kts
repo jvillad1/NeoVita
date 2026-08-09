@@ -11,16 +11,18 @@ plugins {
     alias(libs.plugins.android.library).apply(false)
 }
 
-// Dependencias npm del toolchain de Kotlin/Wasm (webpack y su dev-server). Dependabot
-// marcó cuatro advisories HIGH en kotlin-js-store/yarn.lock; regenerar el lock arregla
-// tres, pero `ws` viene pinneado exacto (8.18.0) y por rango cerrado (~8.20.1) desde
-// dentro del toolchain, así que sin forzar la resolución se queda vulnerable.
-// Sólo afecta al build: nada de esto viaja en el bundle wasm que sirve el servidor.
+// `ws` es la única dependencia npm del toolchain que no se puede parchear regenerando el
+// lock: los paquetes que Kotlin genera para wasm lo pinnean EXACTO en 8.18.0 y el engine.io
+// de karma pide ~8.20.1, y los dos rangos excluyen la versión sin la vulnerabilidad.
+//
+// Los demás paquetes que marca Dependabot (fast-uri, js-yaml, socket.io-parser) NO llevan
+// resolution a propósito: sus rangos (^3.0.1, ^4.1.0, ~4.2.4) ya admiten el parche, así que
+// basta con `kotlinUpgradeYarnLock`. Fijarlos a una versión exacta fue un error — congela el
+// paquete, y cuando salió una advisory nueva de fast-uri el pin impidió que se moviera.
+//
+// Nada de esto viaja en el bundle wasm: son dependencias de build (webpack y karma).
 plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
     the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().apply {
         resolution("ws", "8.21.0")
-        resolution("fast-uri", "3.1.3")
-        resolution("js-yaml", "4.3.1")
-        resolution("socket.io-parser", "4.2.7")
     }
 }
