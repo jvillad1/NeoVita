@@ -14,4 +14,8 @@ data class PushSendRequest(
 )
 
 @Serializable
-data class PushSendResponse(val sent: Int)
+data class PushSendResponse(
+    val sent: Int,
+    /** Tokens que FCM ya no reconoce y que se acaban de dar de baja. */
+    val pruned: Int = 0
+)

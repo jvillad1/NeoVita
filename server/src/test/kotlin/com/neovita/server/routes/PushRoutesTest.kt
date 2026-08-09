@@ -83,6 +83,9 @@ class PushRoutesTest {
     fun `disabled service reports zero sends without touching the network`() {
         val service = PushService(serviceAccountJson = null)
         assertEquals(false, service.enabled)
-        assertEquals(0, service.send(listOf("t1", "t2"), "Hola", "Prueba", null))
+        val result = service.send(listOf("t1", "t2"), "Hola", "Prueba", null)
+        assertEquals(0, result.sent)
+        // Sin credenciales no hay forma de saber si un token murió: no se poda nada.
+        assertEquals(emptyList(), result.dead)
     }
 }
