@@ -48,7 +48,10 @@ class ChatViewModel(private val chatRepo: ChatRepository) {
         var accumulated = ""
         scope.launch {
             chatRepo.sendMessage(_state.value.messages.dropLast(1))
-                .catch {
+                .catch { e ->
+                    // Sin esto el fallo se pierde entero: el usuario ve "no disponible" y no
+                    // queda rastro de si fue la red, un 401 o un error del servidor.
+                    println("NEOVITA-CHAT-ERROR: ${e::class.simpleName}: ${e.message}")
                     _state.update { s ->
                         s.copy(isStreaming = false, error = "Coach no disponible, intenta más tarde")
                     }
