@@ -53,6 +53,35 @@ class ApiServiceChatTest {
     }
 
     @Test
+    fun `an event split across several data lines keeps its newlines`() = runTest {
+        // Así es como SSE representa un texto con saltos de línea: varias líneas `data:`
+        // dentro del mismo evento. Quedarse sólo con la primera perdía texto y pegaba los
+        // fragmentos, que es lo que se veía en producción.
+        val api = serviceCapturing(
+            mutableListOf(),
+            sse = "data: Duerme mejor\ndata: - acuéstate a la misma hora\n\ndata: [DONE]\n\n"
+        )
+
+        assertEquals(
+            listOf("Duerme mejor\n- acuéstate a la misma hora"),
+            api.streamChat(listOf(ChatMessageDto("user", "x"))).toList()
+        )
+    }
+
+    @Test
+    fun `an empty data line inside an event is a blank line, not a separator`() = runTest {
+        val api = serviceCapturing(
+            mutableListOf(),
+            sse = "data: uno\ndata: \ndata: dos\n\ndata: [DONE]\n\n"
+        )
+
+        assertEquals(
+            listOf("uno\n\ndos"),
+            api.streamChat(listOf(ChatMessageDto("user", "x"))).toList()
+        )
+    }
+
+    @Test
     fun `text deltas arrive and the DONE sentinel is not emitted`() = runTest {
         val api = serviceCapturing(
             mutableListOf(),

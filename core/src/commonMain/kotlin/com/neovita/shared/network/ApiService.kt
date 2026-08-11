@@ -133,12 +133,29 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
             }
         }.execute { response ->
             val channel = response.bodyAsChannel()
+            // Un evento SSE puede ocupar VARIAS líneas `data:`; se unen con \n y termina en
+            // una línea en blanco. Quedarse sólo con la primera perdía todo lo que viniera
+            // tras un salto de línea (listas, párrafos) y pegaba los fragmentos entre sí.
+            val event = StringBuilder()
+            suspend fun flushEvent() {
+                if (event.isEmpty()) return
+                val payload = event.toString()
+                event.clear()
+                if (payload != "[DONE]") emit(payload)
+            }
             while (!channel.isClosedForRead) {
                 val line = channel.readUTF8Line() ?: break
-                if (line.startsWith("data: ") && line != "data: [DONE]") {
-                    emit(line.removePrefix("data: "))
+                when {
+                    line.isEmpty() -> flushEvent()
+                    line.startsWith("data:") -> {
+                        if (event.isNotEmpty()) event.append('\n')
+                        // SSE se come UN espacio tras los dos puntos, no más.
+                        event.append(line.removePrefix("data:").removePrefix(" "))
+                    }
+                    // Cualquier otro campo (event:, id:, retry:, comentarios) se ignora.
                 }
             }
+            flushEvent()   // por si el stream acaba sin línea en blanco final
         }
     }
 
