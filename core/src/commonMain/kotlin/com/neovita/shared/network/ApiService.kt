@@ -123,7 +123,14 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
     private fun sseFlow(url: String, method: HttpMethod, body: Any? = null): Flow<String> = flow {
         httpClient.prepareRequest(url) {
             this.method = method
-            body?.let { setBody(it) }
+            body?.let {
+                // Sin Content-Type, ContentNegotiation no sabe con qué serializar y Ktor
+                // falla antes de salir a la red ("Fail to prepare request body for sending").
+                // Era la única petición con cuerpo de este archivo que no lo declaraba, y
+                // por eso el chat no funcionaba desde ningún cliente.
+                contentType(ContentType.Application.Json)
+                setBody(it)
+            }
         }.execute { response ->
             val channel = response.bodyAsChannel()
             while (!channel.isClosedForRead) {
