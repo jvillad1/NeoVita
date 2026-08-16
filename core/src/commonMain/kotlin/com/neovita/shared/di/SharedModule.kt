@@ -6,11 +6,13 @@ import com.neovita.shared.data.repository.AssessmentRepositoryImpl
 import com.neovita.shared.data.repository.ChatRepositoryImpl
 import com.neovita.shared.data.repository.ContentRepositoryImpl
 import com.neovita.shared.data.repository.PlanRepositoryImpl
+import com.neovita.shared.data.repository.TeamRepositoryImpl
 import com.neovita.shared.data.repository.UserRepositoryImpl
 import com.neovita.shared.domain.repository.AssessmentRepository
 import com.neovita.shared.domain.repository.ChatRepository
 import com.neovita.shared.domain.repository.ContentRepository
 import com.neovita.shared.domain.repository.PlanRepository
+import com.neovita.shared.domain.repository.TeamRepository
 import com.neovita.shared.domain.repository.UserRepository
 import com.neovita.shared.domain.usecase.CalculateScoresUseCase
 import com.neovita.shared.network.ApiService
@@ -60,5 +62,6 @@ fun sharedModule(baseUrl: String, cache: LocalCache?) = module {
     single<UserRepository> { UserRepositoryImpl(get()) }
     single<ChatRepository> { ChatRepositoryImpl(get()) }
     single<ContentRepository> { ContentRepositoryImpl(get()) }
+    single<TeamRepository> { TeamRepositoryImpl(get()) }
     factory { CalculateScoresUseCase() }
 }
