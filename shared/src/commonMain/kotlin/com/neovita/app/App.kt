@@ -3,6 +3,7 @@ package com.neovita.app
 import androidx.compose.runtime.Composable
 import com.neovita.app.config.ConfigGate
 import com.neovita.app.navigation.AppNavigation
+import com.neovita.app.ui.layout.MaxWidthContent
 import com.neovita.app.ui.theme.NeoVitaTheme
 import com.neovita.app.di.appModule
 import com.neovita.shared.config.AppPlatform
@@ -23,7 +24,7 @@ fun App(
             // when the server says so; otherwise normal navigation.
             ConfigGate(clientInfo) {
                 // Start screen + forced-logout handling derive from the persisted session.
-                AppNavigation()
+                MaxWidthContent { AppNavigation() }
             }
         }
     }
