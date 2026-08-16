@@ -3,6 +3,7 @@ package com.neovita.app.di
 import com.neovita.app.auth.GoogleSignInClient
 import com.neovita.app.screens.admin.ContentAdminViewModel
 import com.neovita.app.screens.assessment.AssessmentViewModel
+import com.neovita.app.screens.b2b.B2BViewModel
 import com.neovita.app.screens.chat.ChatViewModel
 import com.neovita.app.screens.dashboard.DashboardViewModel
 import com.neovita.app.screens.login.LoginViewModel
@@ -17,6 +18,7 @@ val appModule = module {
     factory { LoginViewModel(get(), get()) }
     factory { DashboardViewModel(get(), get(), get(), get(), getOrNull()) }
     factory { ChatViewModel(get()) }
+    factory { B2BViewModel(get()) }
     factory { PlanViewModel(get()) }
     factory { AssessmentViewModel(get()) }
     factory { OnboardingViewModel(get()) }

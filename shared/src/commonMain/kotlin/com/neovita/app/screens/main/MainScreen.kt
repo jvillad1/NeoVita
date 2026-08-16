@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +27,7 @@ import cafe.adriel.voyager.navigator.tab.*
 import com.neovita.app.navigation.tabs.*
 import com.neovita.app.ui.theme.*
 import com.neovita.shared.config.RemoteConfigRepository
+import com.neovita.shared.domain.repository.UserRepository
 import com.neovita.shared.config.isFeatureEnabled
 import org.koin.compose.koinInject
 
@@ -68,12 +70,24 @@ private fun NeoBottomBar() {
     val tabNavigator = LocalTabNavigator.current
     // "chat" is a shipped feature: default true (visible unless the server disables it).
     val config by koinInject<RemoteConfigRepository>().config.collectAsState()
+
+    // El rol vive en el servidor, no en el JWT del cliente: se pregunta una vez al entrar.
+    // Ocultar la pestaña es comodidad, no seguridad — el endpoint exige EMPLOYER igual.
+    val userRepo = koinInject<UserRepository>()
+    var esEmpleador by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        esEmpleador = userRepo.getMe().getOrNull()?.role == "EMPLOYER"
+    }
+
     val navItems = buildList {
         add(NavItem(HomeTab, "Inicio", Icons.Filled.Home))
         if (config.isFeatureEnabled("chat", default = true)) {
             add(NavItem(ChatTab, "Coach", Icons.Filled.MailOutline))
         }
         add(NavItem(PlanTab, "Plan", Icons.Filled.DateRange))
+        if (esEmpleador) {
+            add(NavItem(B2BTab, "Empresa", Icons.Filled.Star))
+        }
         add(NavItem(ProfileTab, "Perfil", Icons.Filled.Person))
     }
 
