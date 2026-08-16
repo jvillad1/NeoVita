@@ -137,10 +137,15 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
             // una línea en blanco. Quedarse sólo con la primera perdía todo lo que viniera
             // tras un salto de línea (listas, párrafos) y pegaba los fragmentos entre sí.
             val event = StringBuilder()
+            // Hay que distinguir "el evento no ha empezado" de "el evento empezó con una
+            // línea vacía": mirar si el StringBuilder está vacío confunde los dos casos y
+            // perdía el salto de línea inicial, pegando dos párrafos.
+            var eventoAbierto = false
             suspend fun flushEvent() {
-                if (event.isEmpty()) return
+                if (!eventoAbierto) return
                 val payload = event.toString()
                 event.clear()
+                eventoAbierto = false
                 if (payload != "[DONE]") emit(payload)
             }
             while (!channel.isClosedForRead) {
@@ -148,7 +153,8 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
                 when {
                     line.isEmpty() -> flushEvent()
                     line.startsWith("data:") -> {
-                        if (event.isNotEmpty()) event.append('\n')
+                        if (eventoAbierto) event.append('\n')
+                        eventoAbierto = true
                         // SSE se come UN espacio tras los dos puntos, no más.
                         event.append(line.removePrefix("data:").removePrefix(" "))
                     }
