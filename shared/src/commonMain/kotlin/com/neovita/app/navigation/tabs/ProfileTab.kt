@@ -7,7 +7,7 @@ import com.neovita.app.screens.profile.ProfileScreen
 
 object ProfileTab : Tab {
     override val options: TabOptions
-        @Composable get() = TabOptions(index = 3u, title = "Profile")
+        @Composable get() = TabOptions(index = 4u, title = "Profile")
 
     @Composable
     override fun Content() = ProfileScreen().Content()

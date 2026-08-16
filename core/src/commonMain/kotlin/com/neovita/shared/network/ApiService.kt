@@ -69,6 +69,11 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
         httpClient.get("$baseUrl/assessments/latest").body()
     }
 
+    /** Equipo del empleador. El servidor exige rol EMPLOYER y responde 403 si no lo tiene. */
+    suspend fun getTeam(): Result<TeamResponse> = safeCall {
+        httpClient.get("$baseUrl/b2b/team").body()
+    }
+
     suspend fun getContent(): Result<List<ContentItemDto>> = safeCall {
         httpClient.get("$baseUrl/content").body()
     }
