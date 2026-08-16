@@ -82,6 +82,36 @@ class ApiServiceChatTest {
     }
 
     @Test
+    fun `an event whose first data line is empty keeps its leading newline`() = runTest {
+        // Medido contra producción: Anthropic manda deltas como "\n" + texto, que el servidor
+        // enmarca con una primera línea `data:` vacía. El acumulador sólo anteponía el salto
+        // "si ya había algo", así que con la primera línea vacía el salto se perdía y dos
+        // párrafos quedaban pegados ("...celular.Evita: Café...").
+        val api = serviceCapturing(
+            mutableListOf(),
+            sse = "data: \ndata: Acuéstate temprano\n\ndata: [DONE]\n\n"
+        )
+
+        assertEquals(
+            listOf("\nAcuéstate temprano"),
+            api.streamChat(listOf(ChatMessageDto("user", "x"))).toList()
+        )
+    }
+
+    @Test
+    fun `several empty data lines in a row survive as blank lines`() = runTest {
+        val api = serviceCapturing(
+            mutableListOf(),
+            sse = "data: \ndata: \ndata: texto\n\ndata: [DONE]\n\n"
+        )
+
+        assertEquals(
+            listOf("\n\ntexto"),
+            api.streamChat(listOf(ChatMessageDto("user", "x"))).toList()
+        )
+    }
+
+    @Test
     fun `text deltas arrive and the DONE sentinel is not emitted`() = runTest {
         val api = serviceCapturing(
             mutableListOf(),
