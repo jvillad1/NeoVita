@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import org.koin.compose.koinInject
 import com.neovita.app.ui.components.ErrorBanner
+import com.neovita.app.ui.text.chatMarkdown
 import com.neovita.app.ui.theme.*
 import com.neovita.shared.domain.model.MessageRole
 
@@ -90,7 +91,7 @@ class ChatScreen : Screen {
                                 color = NeoDarkSurface2,
                                 modifier = Modifier.widthIn(max = 280.dp)
                             ) {
-                                Text(msg.content,
+                                Text(chatMarkdown(msg.content),
                                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                                     style = MaterialTheme.typography.bodyMedium, color = NeoTextPrimary)
                             }
