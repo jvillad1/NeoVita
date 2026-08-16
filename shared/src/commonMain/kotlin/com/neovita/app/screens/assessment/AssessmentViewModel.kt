@@ -37,7 +37,9 @@ data class AssessmentState(
     val answers: Map<String, String> = emptyMap(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val completed: AssessmentResponse? = null
+    val completed: AssessmentResponse? = null,
+    /** La evaluación se guardó. Es la única señal válida para navegar a los resultados. */
+    val saved: Boolean = false
 )
 
 class AssessmentViewModel(private val assessmentRepo: AssessmentRepository) {
@@ -49,14 +51,27 @@ class AssessmentViewModel(private val assessmentRepo: AssessmentRepository) {
         val newAnswers = _state.value.answers + (questionId to value)
         val nextQuestion = _state.value.currentQuestion + 1
         if (nextQuestion >= QUESTIONS.size) {
+            // La respuesta de la ÚLTIMA pregunta también tiene que entrar en el estado: antes
+            // sólo lo hacía la rama del else, así que la pantalla se quedaba con cuatro y no
+            // se enteraba nunca de que había terminado.
+            //
+            // answers e isLoading se escriben JUNTOS, en una sola actualización: si se
+            // publicara el mapa completo con isLoading todavía en false, habría un instante
+            // en el que la pantalla creería que ya acabó y navegaría antes de guardar.
+            _state.update { it.copy(answers = newAnswers, isLoading = true, error = null) }
             submitAssessment(newAnswers)
         } else {
             _state.update { it.copy(answers = newAnswers, currentQuestion = nextQuestion) }
         }
     }
 
+    /** Vuelve a la pregunta anterior conservando lo ya respondido. En la primera, no hace nada. */
+    fun goBack() {
+        if (_state.value.currentQuestion == 0) return
+        _state.update { it.copy(currentQuestion = it.currentQuestion - 1, error = null) }
+    }
+
     private fun submitAssessment(answers: Map<String, String>) {
-        _state.update { it.copy(isLoading = true) }
         scope.launch {
             assessmentRepo.saveAssessment(
                 exerciseFrequency = answers["exercise_frequency"] ?: "",
@@ -64,14 +79,14 @@ class AssessmentViewModel(private val assessmentRepo: AssessmentRepository) {
                 sleepHours = answers["sleep_hours"] ?: "",
                 sleepQuality = answers["sleep_quality"]?.toIntOrNull() ?: 5,
                 mainGoal = answers["main_goal"] ?: ""
-            ).onSuccess { assessment ->
-                // Convert domain to response-like for state
-                _state.update { it.copy(isLoading = false, completed = null) }
+            ).onSuccess {
+                _state.update { it.copy(isLoading = false, saved = true) }
             }.onFailure {
                 _state.update { it.copy(isLoading = false, error = "Error al guardar evaluación") }
             }
         }
     }
 
-    val isDone: Boolean get() = _state.value.completed != null || (_state.value.answers.size >= QUESTIONS.size && !_state.value.isLoading)
+    /** Sólo cuando el guardado confirmó. Inferirlo del número de respuestas fue el bug. */
+    val isDone: Boolean get() = _state.value.saved
 }

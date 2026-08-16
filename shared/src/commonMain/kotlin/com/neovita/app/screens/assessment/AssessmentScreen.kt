@@ -24,10 +24,8 @@ class AssessmentScreen : Screen {
         val state by vm.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
-        LaunchedEffect(state.isLoading, state.answers.size) {
-            if (!state.isLoading && state.answers.size >= QUESTIONS.size && state.error == null) {
-                navigator.replace(ResultsScreen())
-            }
+        LaunchedEffect(state.saved) {
+            if (state.saved) navigator.replace(ResultsScreen())
         }
 
         val question = QUESTIONS.getOrNull(state.currentQuestion)
@@ -51,10 +49,20 @@ class AssessmentScreen : Screen {
                     }
                 }
             } else if (question != null) {
-                Text(
-                    "Pregunta ${state.currentQuestion + 1} de ${QUESTIONS.size}",
-                    style = MaterialTheme.typography.labelSmall, color = Color.Gray
-                )
+                // Fila de cabecera: volver + progreso. Sin esto no había forma de corregir
+                // una respuesta ya dada salvo reiniciando el cuestionario.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (state.currentQuestion > 0) {
+                        TextButton(onClick = { vm.goBack() }, contentPadding = PaddingValues(0.dp)) {
+                            Text("‹ Volver", color = NeoTeal700, fontWeight = FontWeight.Medium)
+                        }
+                        Spacer(Modifier.width(12.dp))
+                    }
+                    Text(
+                        "Pregunta ${state.currentQuestion + 1} de ${QUESTIONS.size}",
+                        style = MaterialTheme.typography.labelSmall, color = Color.Gray
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
                 Text(
                     question.text,

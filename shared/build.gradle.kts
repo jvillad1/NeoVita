@@ -72,9 +72,16 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
             implementation(libs.sqldelight.native.driver)
+            // Sin un fetcher de red, Coil no descarga NADA: las tarjetas quedaban en gris.
+            // Android usa el de OkHttp; iOS y wasm no tenían ninguno.
+            implementation(libs.coil.network.ktor)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.coil.network.ktor)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
