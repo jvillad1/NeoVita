@@ -12,6 +12,7 @@ import com.neovita.app.screens.login.LoginScreen
 import com.neovita.app.screens.main.MainScreen
 import com.neovita.app.screens.onboarding.OnboardingScreen
 import com.neovita.app.screens.web.WebContentScreen
+import com.neovita.app.session.CurrentUserRole
 import com.neovita.shared.session.SessionManager
 
 @Composable
@@ -33,6 +34,9 @@ fun AppNavigation() {
         // A streak of 401s (or an explicit sign-out) clears the session — reset to Login.
         LaunchedEffect(loggedIn) {
             if (!loggedIn && navigator.lastItem !is LoginScreen) {
+                // Aquí, y no en el botón de salir: cubre también la expulsión por 401,
+                // que no pasa por Perfil. El rol cacheado no debe sobrevivir a la sesión.
+                CurrentUserRole.clear()
                 navigator.replaceAll(LoginScreen())
             }
         }

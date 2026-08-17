@@ -29,6 +29,7 @@ import com.neovita.app.ui.theme.*
 import com.neovita.shared.config.RemoteConfigRepository
 import com.neovita.shared.domain.repository.UserRepository
 import com.neovita.app.navigation.url.AppRoute
+import com.neovita.app.session.CurrentUserRole
 import com.neovita.app.navigation.url.BrowserUrl
 import com.neovita.app.navigation.url.tabFor
 import com.neovita.shared.config.isFeatureEnabled
@@ -53,8 +54,10 @@ class MainScreen : Screen {
                     AnimatedContent(
                         targetState = tabNavigator.current,
                         transitionSpec = {
-                            (fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.96f))
-                                .togetherWith(fadeOut(tween(120)) + scaleOut(tween(120), targetScale = 0.96f))
+                            // 340 ms de fundido+escala se notan en wasm, donde además hay
+                            // que recomponer la pantalla entera. Un fundido corto da la
+                            // continuidad visual sin hacer esperar.
+                            fadeIn(tween(90)).togetherWith(fadeOut(tween(60)))
                         },
                         label = "tabContent"
                     ) { tab ->
@@ -78,13 +81,14 @@ private fun NeoBottomBar() {
     // "chat" is a shipped feature: default true (visible unless the server disables it).
     val config by koinInject<RemoteConfigRepository>().config.collectAsState()
 
-    // El rol vive en el servidor, no en el JWT del cliente: se pregunta una vez al entrar.
-    // Ocultar la pestaña es comodidad, no seguridad — el endpoint exige EMPLOYER igual.
+    // El rol vive en el servidor, no en el JWT del cliente. Se pide una vez por sesión y se
+    // cachea: esta barra se recompone en cada cambio de pestaña, y preguntarlo aquí añadía
+    // un /api/users/me por cambio. Ocultar la pestaña es comodidad, no seguridad — el
+    // endpoint exige EMPLOYER igual.
     val userRepo = koinInject<UserRepository>()
-    var esEmpleador by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        esEmpleador = userRepo.getMe().getOrNull()?.role == "EMPLOYER"
-    }
+    val rol by CurrentUserRole.role.collectAsState()
+    LaunchedEffect(Unit) { CurrentUserRole.ensureLoaded(userRepo) }
+    val esEmpleador = rol == "EMPLOYER"
 
     val navItems = buildList {
         add(NavItem(HomeTab, "Inicio", Icons.Filled.Home))
