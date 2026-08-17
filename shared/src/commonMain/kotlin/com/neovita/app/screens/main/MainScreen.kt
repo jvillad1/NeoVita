@@ -28,13 +28,19 @@ import com.neovita.app.navigation.tabs.*
 import com.neovita.app.ui.theme.*
 import com.neovita.shared.config.RemoteConfigRepository
 import com.neovita.shared.domain.repository.UserRepository
+import com.neovita.app.navigation.url.AppRoute
+import com.neovita.app.navigation.url.BrowserUrl
+import com.neovita.app.navigation.url.tabFor
 import com.neovita.shared.config.isFeatureEnabled
 import org.koin.compose.koinInject
 
 class MainScreen : Screen {
     @Composable
     override fun Content() {
-        TabNavigator(HomeTab) {
+        // La pestaña inicial sale de la URL: recargar en /chat debe dejarte en el chat,
+        // no devolverte al inicio.
+        val inicial = remember { tabFor(AppRoute.fromPath(BrowserUrl.currentPath())) }
+        TabNavigator(inicial) {
             Scaffold(
                 containerColor = NeoDarkBg,
                 bottomBar = {
@@ -43,6 +49,7 @@ class MainScreen : Screen {
             ) { paddingValues ->
                 Box(Modifier.padding(paddingValues)) {
                     val tabNavigator = LocalTabNavigator.current
+                    SyncUrlWithTab(tabNavigator)
                     AnimatedContent(
                         targetState = tabNavigator.current,
                         transitionSpec = {
@@ -159,4 +166,32 @@ private fun RowScope.NeoTabItem(item: NavItem, tabNavigator: TabNavigator) {
             )
         }
     }
+}
+
+/**
+ * Mantiene la barra de direcciones y la pestaña activa diciendo lo mismo, en los dos
+ * sentidos: al cambiar de pestaña se escribe la URL, y Atrás/Adelante del navegador
+ * cambian de pestaña en vez de sacarte de la app.
+ *
+ * En Android e iOS `BrowserUrl` no hace nada, así que este bloque es inofensivo allí.
+ */
+@Composable
+private fun SyncUrlWithTab(tabNavigator: cafe.adriel.voyager.navigator.tab.TabNavigator) {
+    LaunchedEffect(tabNavigator.current) {
+        routeFor(tabNavigator.current)?.let { BrowserUrl.push(it) }
+    }
+    LaunchedEffect(Unit) {
+        BrowserUrl.onBackForward { ruta ->
+            tabNavigator.current = tabFor(ruta)
+        }
+    }
+}
+
+private fun routeFor(tab: cafe.adriel.voyager.navigator.tab.Tab): AppRoute? = when (tab) {
+    HomeTab -> AppRoute.DASHBOARD
+    ChatTab -> AppRoute.CHAT
+    PlanTab -> AppRoute.PLAN
+    B2BTab -> AppRoute.B2B
+    ProfileTab -> AppRoute.PROFILE
+    else -> null
 }
