@@ -48,12 +48,24 @@ actual class GoogleSignInClient actual constructor() {
         } catch (e: GetCredentialCancellationException) {
             GoogleSignInResult(idToken = null, error = "Inicio de sesión cancelado")
         } catch (e: NoCredentialException) {
-            GoogleSignInResult(idToken = null, error = "No hay cuentas de Google en este dispositivo")
+            // NoCredential NO significa "no hay cuentas": también lo lanza Google cuando la
+            // cuenta existe pero no puede emitir credencial para este cliente OAuth (paquete
+            // o SHA-1 sin registrar, app en modo prueba sin este correo, propagación
+            // pendiente). Sin el motivo, el mensaje al usuario apunta al sitio equivocado.
+            logFallo("NoCredential", e)
+            GoogleSignInResult(idToken = null, error = "Google no ofreció ninguna cuenta para esta app")
         } catch (e: GoogleIdTokenParsingException) {
+            logFallo("Parsing", e)
             GoogleSignInResult(idToken = null, error = "No se pudo leer la credencial de Google")
         } catch (e: GetCredentialException) {
+            logFallo("GetCredential", e)
             GoogleSignInResult(idToken = null, error = "Error al iniciar sesión con Google")
         }
+    }
+
+    /** Sin esto el motivo se pierde y sólo queda un texto que puede ser engañoso. */
+    private fun logFallo(etapa: String, e: Throwable) {
+        println("NEOVITA-SIGNIN-$etapa: ${e::class.simpleName}: ${e.message}")
     }
 
     actual suspend fun signOut() {
