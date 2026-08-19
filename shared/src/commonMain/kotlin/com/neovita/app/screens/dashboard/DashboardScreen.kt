@@ -151,7 +151,7 @@ class DashboardScreen : Screen {
         val screenDef = state.screenDef
         if (screenDef != null) {
             Column(Modifier.fillMaxSize().background(NeoDarkBg)) {
-                SduiGreetingHeader()
+                SduiGreetingHeader(state.user?.name)
                 Box(Modifier.weight(1f)) {
                     SduiRenderer(
                         definition = screenDef,
@@ -185,7 +185,7 @@ class DashboardScreen : Screen {
 //    block, reimplemented locally so the SDUI branch keeps its own chrome. ───────────
 
 @Composable
-private fun SduiGreetingHeader() {
+private fun SduiGreetingHeader(nombre: String?) {
     var show by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { show = true }
 
@@ -195,7 +195,7 @@ private fun SduiGreetingHeader() {
     ) {
         Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 28.dp, bottom = 6.dp)) {
             Text(
-                "Hola, Juan Guillermo",
+                saludoDashboard(nombre),
                 color = NeoTextPrimary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 32.sp,
@@ -238,7 +238,7 @@ private fun DashboardFallback(state: DashboardState) {
                     ) {
                         Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 28.dp, bottom = 6.dp)) {
                             Text(
-                                "Hola, Juan Guillermo",
+                                saludoDashboard(state.user?.name),
                                 color = NeoTextPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 32.sp,
