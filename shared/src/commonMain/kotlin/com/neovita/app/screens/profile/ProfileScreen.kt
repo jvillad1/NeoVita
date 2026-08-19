@@ -193,7 +193,7 @@ class ProfileScreen : Screen {
 
             // Name, subtitle, member since
             Text(
-                state.user?.name ?: "Juan Guillermo",
+                state.user?.name ?: "Tu perfil",
                 style = MaterialTheme.typography.titleLarge,
                 color = NeoTextPrimary,
                 fontWeight = FontWeight.Bold
