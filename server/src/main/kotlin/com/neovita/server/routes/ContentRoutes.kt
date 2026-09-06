@@ -2,7 +2,7 @@ package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.UserRepository
-import com.neovita.server.plugins.requireRole
+import com.neovita.server.plugins.requireContentAdmin
 import com.neovita.shared.network.dto.ContentRequest
 import com.neovita.shared.network.dto.ContentTaxonomy
 import io.ktor.http.*
@@ -21,17 +21,17 @@ fun Route.contentRoutes(repo: ContentRepository, userRepository: UserRepository)
     // Management endpoints — require a valid session AND the EMPLOYER (admin) role.
     authenticate("jwt-auth") {
         get("/content/all") {
-            if (!call.requireRole(userRepository, "EMPLOYER")) return@get
+            if (!call.requireContentAdmin(userRepository)) return@get
             call.respond(repo.listAll())
         }
         post("/content") {
-            if (!call.requireRole(userRepository, "EMPLOYER")) return@post
+            if (!call.requireContentAdmin(userRepository)) return@post
             val req = call.receive<ContentRequest>()
             call.validate(req)?.let { return@post call.respond(HttpStatusCode.BadRequest, it) }
             call.respond(HttpStatusCode.Created, repo.create(req))
         }
         put("/content/{id}") {
-            if (!call.requireRole(userRepository, "EMPLOYER")) return@put
+            if (!call.requireContentAdmin(userRepository)) return@put
             val id = call.parameters["id"] ?: return@put call.respond(HttpStatusCode.BadRequest)
             val req = call.receive<ContentRequest>()
             call.validate(req)?.let { return@put call.respond(HttpStatusCode.BadRequest, it) }
@@ -39,7 +39,7 @@ fun Route.contentRoutes(repo: ContentRepository, userRepository: UserRepository)
             call.respond(updated)
         }
         delete("/content/{id}") {
-            if (!call.requireRole(userRepository, "EMPLOYER")) return@delete
+            if (!call.requireContentAdmin(userRepository)) return@delete
             val id = call.parameters["id"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
             if (repo.delete(id)) call.respond(HttpStatusCode.NoContent)
             else call.respond(HttpStatusCode.NotFound)

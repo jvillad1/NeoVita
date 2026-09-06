@@ -7,7 +7,8 @@ import java.util.UUID
 
 data class UserEntity(
     val id: String, val email: String, val name: String,
-    val age: Int, val role: String, val companyId: String?
+    val age: Int, val role: String, val companyId: String?,
+    val isContentAdmin: Boolean
 )
 
 class UserRepository {
@@ -47,6 +48,7 @@ class UserRepository {
     private fun ResultRow.toEntity() = UserEntity(
         id = this[UsersTable.id], email = this[UsersTable.email],
         name = this[UsersTable.name], age = this[UsersTable.age],
-        role = this[UsersTable.role], companyId = this[UsersTable.companyId]
+        role = this[UsersTable.role], companyId = this[UsersTable.companyId],
+        isContentAdmin = this[UsersTable.isContentAdmin]
     )
 }

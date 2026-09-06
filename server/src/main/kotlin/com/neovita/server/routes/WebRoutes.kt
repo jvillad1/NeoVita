@@ -1,7 +1,7 @@
 package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.UserRepository
-import com.neovita.server.plugins.requireRole
+import com.neovita.server.plugins.requireContentAdmin
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
@@ -50,12 +50,12 @@ fun Route.webRoutes(userRepository: UserRepository) {
     // WebView. Vive en el servidor a propósito — mejorarlo es un deploy, nunca un release.
     authenticate("jwt-auth") {
         get("/web/admin/screens") {
-            if (!call.requireRole(userRepository, "EMPLOYER")) return@get
+            if (!call.requireContentAdmin(userRepository)) return@get
             // Los WebView sólo adjuntan el JWT a la petición INICIAL, así que los fetch()
             // de la página irían sin credencial. Le pasamos el token de quien ya se
             // autenticó aquí. Es su propio token, la página es same-origin, va por https y
-            // está restringida a EMPLOYER; aun así no debe registrarse en logs ni salir de
-            // este origen. (Mejora futura: un token efímero con alcance sólo-pantallas.)
+            // está restringida a isContentAdmin; aun así no debe registrarse en logs ni
+            // salir de este origen. (Mejora futura: un token efímero con alcance sólo-pantallas.)
             val token = call.request.headers[HttpHeaders.Authorization]
                 ?.removePrefix("Bearer ")?.trim().orEmpty()
             val html = javaClass.getResource("/web/screen-editor.html")!!.readText()
