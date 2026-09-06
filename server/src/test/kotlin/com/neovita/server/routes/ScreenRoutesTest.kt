@@ -53,10 +53,17 @@ class ScreenRoutesTest {
         "claude.model" to "dummy-model",
     )
 
-    /** Creates a user and promotes it to EMPLOYER; returns its id. */
+    /** Creates a user and promotes it to EMPLOYER (company/team role only). */
     private fun employer(): String {
         val user = UserRepository().upsert("admin@test.dev", "Admin")
         transaction { UsersTable.update({ UsersTable.id eq user.id }) { it[role] = "EMPLOYER" } }
+        return user.id
+    }
+
+    /** Creates a user with the content/screens backoffice flag — NOT an EMPLOYER. */
+    private fun contentAdmin(): String {
+        val user = UserRepository().upsert("content-admin@test.dev", "Content Admin")
+        transaction { UsersTable.update({ UsersTable.id eq user.id }) { it[isContentAdmin] = true } }
         return user.id
     }
 
@@ -159,12 +166,12 @@ class ScreenRoutesTest {
     """.trimIndent()
 
     @Test
-    fun `employer updates a screen and the version bumps`() = testApplication {
+    fun `content admin updates a screen and the version bumps`() = testApplication {
         environment { config = testConfig("screens_test_put") }
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         val before = client.get("/api/screens/dashboard") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -193,7 +200,7 @@ class ScreenRoutesTest {
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         val response = client.put("/api/screens/dashboard") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -226,7 +233,7 @@ class ScreenRoutesTest {
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         val response = client.put("/api/screens/${"a".repeat(70)}") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -241,7 +248,7 @@ class ScreenRoutesTest {
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         val response = client.put("/api/screens/Bad_Slug!") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -251,12 +258,12 @@ class ScreenRoutesTest {
     }
 
     @Test
-    fun `employer lists the screens`() = testApplication {
+    fun `content admin lists the screens`() = testApplication {
         environment { config = testConfig("screens_test_list") }
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         val response = client.get("/api/screens") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -271,7 +278,7 @@ class ScreenRoutesTest {
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         // Primer guardado: la pantalla pasa a versión 2.
         val first = client.put("/api/screens/dashboard") {
@@ -304,7 +311,7 @@ class ScreenRoutesTest {
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         val response = client.put("/api/screens/dashboard") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -319,7 +326,7 @@ class ScreenRoutesTest {
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         // Una pantalla desactivada no la sirve getActive...
         transaction {
@@ -351,7 +358,7 @@ class ScreenRoutesTest {
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         // Comillas como manda la especificación de ETag: debe proteger igual que "1".
         assertEquals(
@@ -379,7 +386,7 @@ class ScreenRoutesTest {
         application { module() }
         startApplication()
         val client = createClient { install(ContentNegotiation) { json() } }
-        val token = jwtService.generateToken(employer(), "EMPLOYER")
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         val response = client.put("/api/screens/dashboard") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -388,6 +395,31 @@ class ScreenRoutesTest {
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
         assertTrue(response.bodyAsText().contains("INVALID_IF_MATCH"), response.bodyAsText())
+    }
+
+    @Test
+    fun `an employer without content-admin rights cannot manage screens`() = testApplication {
+        // Regression test. EMPLOYER used to double as "can edit the platform's dashboard
+        // layout" — any single company's team lead could rewrite what every other
+        // company's employees see. isContentAdmin is what the screens editor should
+        // actually require; being a company's employer is neither necessary nor sufficient.
+        environment { config = testConfig("screens_test_employer_not_admin") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        assertEquals(
+            HttpStatusCode.Forbidden,
+            client.get("/api/screens") { header(HttpHeaders.Authorization, "Bearer $token") }.status
+        )
+        assertEquals(
+            HttpStatusCode.Forbidden,
+            client.put("/api/screens/dashboard") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+                contentType(ContentType.Application.Json); setBody(validBody)
+            }.status
+        )
     }
 
 }

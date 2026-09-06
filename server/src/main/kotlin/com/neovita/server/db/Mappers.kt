@@ -9,7 +9,8 @@ import com.neovita.shared.network.dto.UserDto
 // Server responses reuse :core's shared wire DTOs so client and server never drift.
 fun UserEntity.toDto() = UserDto(
     id = id, name = name, email = email,
-    age = age, role = role, companyId = companyId
+    age = age, role = role, companyId = companyId,
+    isContentAdmin = isContentAdmin
 )
 
 fun AssessmentEntity.toDto() = AssessmentResponse(

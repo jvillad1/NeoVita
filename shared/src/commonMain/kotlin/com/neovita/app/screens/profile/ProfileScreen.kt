@@ -364,8 +364,10 @@ class ProfileScreen : Screen {
                         )
                         HorizontalDivider(color = NeoDarkSurface2)
                     }
-                    // Content administration — only for EMPLOYER (admin) accounts.
-                    if (state.user?.role == "EMPLOYER") {
+                    // Content administration — gated by isContentAdmin, NOT by role/EMPLOYER.
+                    // EMPLOYER only means "can see my own company's team" (see B2BTab); it
+                    // must not also unlock editing content every user of the app sees.
+                    if (state.user?.isContentAdmin == true) {
                         SettingsItem(
                             icon = "🗂️",
                             title = "Administrar contenido",

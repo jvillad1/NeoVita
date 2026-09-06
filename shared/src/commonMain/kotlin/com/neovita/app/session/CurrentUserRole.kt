@@ -19,6 +19,13 @@ object CurrentUserRole {
     private val _role = MutableStateFlow<String?>(null)
     val role: StateFlow<String?> = _role.asStateFlow()
 
+    // Independiente de `role`: EMPLOYER es "puede ver el equipo de mi empresa", esto es
+    // "puede administrar el contenido y las pantallas de TODA la app". Antes eran la misma
+    // bandera, así que cualquier EMPLOYER de cualquier empresa podía reescribir lo que ve
+    // todo el mundo — ver Authorization.kt#requireContentAdmin en el servidor.
+    private val _isContentAdmin = MutableStateFlow(false)
+    val isContentAdmin: StateFlow<Boolean> = _isContentAdmin.asStateFlow()
+
     val isEmployer: Boolean get() = _role.value == "EMPLOYER"
 
     private var pedido = false
@@ -26,12 +33,15 @@ object CurrentUserRole {
     suspend fun ensureLoaded(userRepo: UserRepository) {
         if (pedido) return
         pedido = true
-        _role.value = userRepo.getMe().getOrNull()?.role
+        val me = userRepo.getMe().getOrNull()
+        _role.value = me?.role
+        _isContentAdmin.value = me?.isContentAdmin ?: false
     }
 
-    /** Al cerrar sesión: el rol del siguiente usuario no tiene por qué ser el mismo. */
+    /** Al cerrar sesión: los permisos del siguiente usuario no tienen por qué ser los mismos. */
     fun clear() {
         pedido = false
         _role.value = null
+        _isContentAdmin.value = false
     }
 }

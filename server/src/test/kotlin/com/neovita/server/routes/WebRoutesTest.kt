@@ -38,10 +38,17 @@ class WebRoutesTest {
         "claude.model" to "dummy-model",
     )
 
-    /** Creates a user and promotes it to EMPLOYER; returns its id. */
+    /** Company/team role only — must NOT unlock the screen editor. */
     private fun employer(): String {
         val user = UserRepository().upsert("admin@test.dev", "Admin")
         transaction { UsersTable.update({ UsersTable.id eq user.id }) { it[role] = "EMPLOYER" } }
+        return user.id
+    }
+
+    /** The content/screens backoffice flag — not a company employer. */
+    private fun contentAdmin(): String {
+        val user = UserRepository().upsert("content-admin@test.dev", "Content Admin")
+        transaction { UsersTable.update({ UsersTable.id eq user.id }) { it[isContentAdmin] = true } }
         return user.id
     }
 
@@ -79,7 +86,7 @@ class WebRoutesTest {
     }
 
     @Test
-    fun `screen editor requires EMPLOYER role`() = testApplication {
+    fun `screen editor requires content-admin rights`() = testApplication {
         environment { config = testConfig("web_test_editor_403") }
         application { module() }
         startApplication()
@@ -95,12 +102,29 @@ class WebRoutesTest {
     }
 
     @Test
-    fun `screen editor bootstraps the caller's token for an employer`() = testApplication {
-        environment { config = testConfig("web_test_editor_200") }
+    fun `an employer without content-admin rights cannot open the screen editor`() = testApplication {
+        // Regression test: this route used to accept EMPLOYER alone, so any company's team
+        // lead could open (and, via the API it drives, edit) every user's dashboard layout.
+        environment { config = testConfig("web_test_editor_employer_not_admin") }
         application { module() }
         startApplication()
 
         val token = jwtService.generateToken(employer(), "EMPLOYER")
+
+        val response = client.get("/web/admin/screens") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `screen editor bootstraps the caller's token for a content admin`() = testApplication {
+        environment { config = testConfig("web_test_editor_200") }
+        application { module() }
+        startApplication()
+
+        val token = jwtService.generateToken(contentAdmin(), "USER")
 
         val response = client.get("/web/admin/screens") {
             header(HttpHeaders.Authorization, "Bearer $token")

@@ -20,3 +20,24 @@ suspend fun ApplicationCall.requireRole(users: UserRepository, role: String): Bo
     }
     return true
 }
+
+/**
+ * Gate for the platform-wide content/screens backoffice — deliberately NOT the same check
+ * as [requireRole]("EMPLOYER"). `EMPLOYER` only means "can see their own company's team" via
+ * `company_id`; it used to also — accidentally — unlock editing the content feed and the
+ * dashboard layout for every user of the app, regardless of which company granted it. Any
+ * one company's team lead could silently rewrite what every other company's employees see.
+ * `isContentAdmin` is its own flag so the two capabilities can be granted independently.
+ */
+suspend fun ApplicationCall.requireContentAdmin(users: UserRepository): Boolean {
+    val userId = principal<UserIdPrincipal>()?.name
+    val user = userId?.let { users.findById(it) }
+    if (user?.isContentAdmin != true) {
+        respond(
+            HttpStatusCode.Forbidden,
+            mapOf("code" to "FORBIDDEN", "message" to "Se requiere permiso de administrador de contenido")
+        )
+        return false
+    }
+    return true
+}
