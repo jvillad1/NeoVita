@@ -2,7 +2,7 @@ package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.repositories.UserRepository
-import com.neovita.server.plugins.requireRole
+import com.neovita.server.plugins.requireContentAdmin
 import com.neovita.shared.network.dto.ScreenUpdateRequest
 import com.neovita.shared.network.dto.validateScreenSections
 import io.ktor.http.*
@@ -27,13 +27,14 @@ fun Route.screenRoutes(repo: ScreenRepository, userRepository: UserRepository) {
             call.respond(screen)
         }
 
-        // Administración de pantallas (EMPLOYER). El editor web vive en /web/admin/screens.
+        // Administración de pantallas (isContentAdmin — no EMPLOYER, ver Authorization.kt).
+        // El editor web vive en /web/admin/screens.
         get("/screens") {
-            if (!call.requireRole(userRepository, "EMPLOYER")) return@get
+            if (!call.requireContentAdmin(userRepository)) return@get
             call.respond(repo.listAll())
         }
         put("/screens/{slug}") {
-            if (!call.requireRole(userRepository, "EMPLOYER")) return@put
+            if (!call.requireContentAdmin(userRepository)) return@put
             val slug = call.parameters["slug"] ?: return@put call.respond(HttpStatusCode.BadRequest)
             // El slug entra en varchar(64) y crea filas nuevas: acotarlo evita un 500 por
             // desbordar la columna y basura arbitraria en la tabla.
