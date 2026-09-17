@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import com.neovita.shared.domain.model.ChatMessage
 import com.neovita.shared.domain.model.MessageRole
+import com.neovita.shared.domain.repository.AnalyticsRepository
 import com.neovita.shared.domain.repository.ChatRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +21,10 @@ data class ChatState(
     val error: String? = null
 )
 
-class ChatViewModel(private val chatRepo: ChatRepository) {
+class ChatViewModel(
+    private val chatRepo: ChatRepository,
+    private val analyticsRepo: AnalyticsRepository? = null,
+) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(
         ChatState(
@@ -46,6 +50,7 @@ class ChatViewModel(private val chatRepo: ChatRepository) {
             )
         }
         var accumulated = ""
+        scope.launch { analyticsRepo?.logEvent("chat_message_sent") }
         scope.launch {
             chatRepo.sendMessage(_state.value.messages.dropLast(1))
                 .catch { e ->

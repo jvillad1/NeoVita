@@ -3,6 +3,7 @@ package com.neovita.app.screens.assessment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import com.neovita.shared.domain.repository.AnalyticsRepository
 import com.neovita.shared.domain.repository.AssessmentRepository
 import com.neovita.shared.network.dto.AssessmentResponse
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +43,10 @@ data class AssessmentState(
     val saved: Boolean = false
 )
 
-class AssessmentViewModel(private val assessmentRepo: AssessmentRepository) {
+class AssessmentViewModel(
+    private val assessmentRepo: AssessmentRepository,
+    private val analyticsRepo: AnalyticsRepository? = null,
+) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(AssessmentState())
     val state = _state.asStateFlow()
@@ -81,6 +85,7 @@ class AssessmentViewModel(private val assessmentRepo: AssessmentRepository) {
                 mainGoal = answers["main_goal"] ?: ""
             ).onSuccess {
                 _state.update { it.copy(isLoading = false, saved = true) }
+                analyticsRepo?.logEvent("assessment_completed")
             }.onFailure {
                 _state.update { it.copy(isLoading = false, error = "Error al guardar evaluación") }
             }
