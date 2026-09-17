@@ -78,6 +78,14 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
         httpClient.get("$baseUrl/content").body()
     }
 
+    suspend fun logEvent(type: String): Result<Unit> = safeCall {
+        httpClient.post("$baseUrl/events") {
+            contentType(ContentType.Application.Json)
+            setBody(LogEventRequest(type))
+        }
+        Unit
+    }
+
     // The shared HttpClient runs with expectSuccess = true (see SharedModule.kt), so any
     // non-2xx status -- including 304 -- is thrown by Ktor's default validator as a
     // ResponseException before we ever get an HttpResponse back to inspect. A 304 comes
