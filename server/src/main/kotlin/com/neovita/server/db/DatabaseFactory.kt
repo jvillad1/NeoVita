@@ -5,6 +5,7 @@ import com.neovita.server.db.repositories.ScreenRepository
 import com.neovita.server.db.tables.AssessmentsTable
 import com.neovita.server.db.tables.ContentTable
 import com.neovita.server.db.tables.DeviceTokensTable
+import com.neovita.server.db.tables.EventsTable
 import com.neovita.server.db.tables.HealthMetricsTable
 import com.neovita.server.db.tables.PlansTable
 import com.neovita.server.db.tables.ScreensTable
@@ -27,7 +28,7 @@ object DatabaseFactory {
         // Nested `transaction {}` calls inside seedIfEmpty() reuse this thread's already-open
         // transaction (and therefore this exact `database`), sidestepping that race.
         transaction(database) {
-            SchemaUtils.createMissingTablesAndColumns(UsersTable, AssessmentsTable, PlansTable, ContentTable, ScreensTable, DeviceTokensTable, HealthMetricsTable)
+            SchemaUtils.createMissingTablesAndColumns(UsersTable, AssessmentsTable, PlansTable, ContentTable, ScreensTable, DeviceTokensTable, HealthMetricsTable, EventsTable)
             // Seed dashboard content on first boot so the feed is never empty.
             ContentRepository().seedIfEmpty(SEED_CONTENT)
             // Seed the SDUI screen definitions (currently just "dashboard") on first boot.

@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import com.neovita.shared.data.cache.LocalCache
 import com.neovita.shared.domain.model.LongevityPlan
+import com.neovita.shared.domain.repository.AnalyticsRepository
 import com.neovita.shared.domain.repository.ContentRepository
 import com.neovita.shared.domain.repository.PlanRepository
 import com.neovita.shared.domain.repository.UserRepository
@@ -70,12 +71,19 @@ class DashboardViewModel(
     private val contentRepo: ContentRepository,
     private val apiService: ApiService,
     private val localCache: LocalCache?,
+    private val analyticsRepo: AnalyticsRepository? = null,
 ) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(DashboardState())
     val state = _state.asStateFlow()
 
-    init { load(); loadScreen() }
+    // El dashboard es la primera pantalla tras el login, así que su carga es la señal de
+    // sesión más simple para medir retención (día 7, semanal) — ver docs/NeoVita_Estrategia_Lanzamiento.pdf.
+    init { load(); loadScreen(); logSessionStart() }
+
+    private fun logSessionStart() {
+        scope.launch { analyticsRepo?.logEvent("session_start") }
+    }
 
     private fun load() {
         scope.launch {
