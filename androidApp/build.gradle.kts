@@ -27,7 +27,7 @@ android {
         getByName("release") {
             isMinifyEnabled = false
             // Production default: the Railway-hosted NeoVita server.
-            val serverUrl = (project.findProperty("serverUrl") as String?) ?: "https://neovita.up.railway.app"
+            val serverUrl = (project.findProperty("serverUrl") as String?) ?: "https://neovita-server-production.up.railway.app"
             buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
         }
     }
