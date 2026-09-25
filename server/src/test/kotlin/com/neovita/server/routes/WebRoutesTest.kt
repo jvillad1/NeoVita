@@ -53,6 +53,17 @@ class WebRoutesTest {
     }
 
     @Test
+    fun `privacy policy page is public`() = testApplication {
+        environment { config = testConfig("web_test_privacy") }
+        application { module() }
+
+        val response = client.get("/legal/privacy")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(response.bodyAsText().contains("Política de Privacidad"))
+    }
+
+    @Test
     fun `demo page renders without session`() = testApplication {
         environment { config = testConfig("web_test_demo_no_session") }
         application { module() }
