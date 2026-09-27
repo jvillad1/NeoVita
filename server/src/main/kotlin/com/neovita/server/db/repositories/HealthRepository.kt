@@ -3,6 +3,8 @@ package com.neovita.server.db.repositories
 import com.neovita.server.db.tables.HealthMetricsTable
 import com.neovita.shared.domain.model.HealthSummary
 import com.neovita.shared.network.dto.DailyHealthMetricDto
+import com.neovita.shared.network.dto.ManualMetricsDto
+import com.neovita.shared.network.dto.ManualMetricsRequest
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
@@ -39,6 +41,54 @@ class HealthRepository {
                 }
             }
         }
+    }
+
+    /**
+     * Registro manual: un solo día, y sólo se escriben los campos que llegan. A diferencia de
+     * [upsertAll] (donde el dispositivo manda el día completo y un null significa "sin dato"),
+     * aquí un null significa "no lo toqué": no debe borrar el sueño o los pasos que el
+     * dispositivo ya sincronizó ese mismo día.
+     */
+    fun upsertManual(userId: String, m: ManualMetricsRequest) = transaction {
+        val now = System.currentTimeMillis()
+        val updated = HealthMetricsTable.update({
+            (HealthMetricsTable.userId eq userId) and (HealthMetricsTable.date eq m.date)
+        }) {
+            m.steps?.let { v -> it[steps] = v }
+            m.weightKg?.let { v -> it[weightKg] = v }
+            m.bloodPressureSys?.let { v -> it[bloodPressureSys] = v }
+            m.bloodPressureDia?.let { v -> it[bloodPressureDia] = v }
+            m.glucoseMgdl?.let { v -> it[glucoseMgdl] = v }
+            it[updatedAt] = now
+        }
+        if (updated == 0) {
+            HealthMetricsTable.insert {
+                it[HealthMetricsTable.userId] = userId
+                it[date] = m.date
+                it[steps] = m.steps
+                it[weightKg] = m.weightKg
+                it[bloodPressureSys] = m.bloodPressureSys
+                it[bloodPressureDia] = m.bloodPressureDia
+                it[glucoseMgdl] = m.glucoseMgdl
+                it[updatedAt] = now
+            }
+        }
+    }
+
+    /** Último valor no nulo de cada métrica manual, mirando los últimos 60 días registrados. */
+    fun latestManual(userId: String): ManualMetricsDto = transaction {
+        val rows = HealthMetricsTable.selectAll()
+            .where { HealthMetricsTable.userId eq userId }
+            .orderBy(HealthMetricsTable.date, SortOrder.DESC)
+            .limit(60)
+            .toList()
+        ManualMetricsDto(
+            steps = rows.firstNotNullOfOrNull { it[HealthMetricsTable.steps] },
+            weightKg = rows.firstNotNullOfOrNull { it[HealthMetricsTable.weightKg] },
+            bloodPressureSys = rows.firstNotNullOfOrNull { it[HealthMetricsTable.bloodPressureSys] },
+            bloodPressureDia = rows.firstNotNullOfOrNull { it[HealthMetricsTable.bloodPressureDia] },
+            glucoseMgdl = rows.firstNotNullOfOrNull { it[HealthMetricsTable.glucoseMgdl] }
+        )
     }
 
     // Ventana de "reciente": datos viejos no deben seguir sobrescribiendo un cuestionario

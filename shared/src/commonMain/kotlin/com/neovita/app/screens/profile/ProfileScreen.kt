@@ -22,6 +22,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -38,6 +41,7 @@ import com.neovita.app.ui.theme.*
 import com.neovita.shared.config.RemoteConfigRepository
 import com.neovita.shared.config.isFeatureEnabled
 import com.neovita.shared.data.cache.LocalCache
+import com.neovita.shared.domain.repository.ManualMetricsRepository
 import com.neovita.shared.domain.repository.UserRepository
 import com.neovita.shared.network.ApiService
 import com.neovita.shared.network.dto.UserDto
@@ -55,7 +59,9 @@ data class MetricsState(
     val bloodPressureSys: String = "",
     val bloodPressureDia: String = "",
     val glucoseMgdl: String = "",
-    val saved: Boolean = false
+    val saved: Boolean = false,
+    val saving: Boolean = false,
+    val error: String? = null
 )
 
 data class ProfileState(
@@ -66,7 +72,8 @@ data class ProfileState(
 
 class ProfileViewModel(
     private val userRepo: UserRepository,
-    private val cache: LocalCache?
+    private val cache: LocalCache?,
+    private val metricsRepo: ManualMetricsRepository
 ) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(ProfileState())
@@ -75,17 +82,33 @@ class ProfileViewModel(
     init {
         scope.launch {
             val user = userRepo.getMe().getOrNull()
-            val metrics = try {
-                val saved = cache?.getMetrics(user?.id ?: "")
-                if (saved != null) MetricsState(
-                    steps = saved.steps?.toString() ?: "",
-                    weightKg = saved.weightKg?.toString() ?: "",
-                    bloodPressureSys = saved.bloodPressureSys?.toString() ?: "",
-                    bloodPressureDia = saved.bloodPressureDia?.toString() ?: "",
-                    glucoseMgdl = saved.glucoseMgdl?.toString() ?: ""
-                ) else MetricsState()
-            } catch (_: Exception) {
-                MetricsState()
+            // El servidor manda: en la web no hay caché local, y en el teléfono el caché no
+            // sabe de lo que se guardó desde otro dispositivo. El caché queda como respaldo
+            // sin conexión.
+            val fromServer = metricsRepo.latest().getOrNull()
+            val metrics = when {
+                fromServer != null && listOfNotNull(
+                    fromServer.steps, fromServer.weightKg, fromServer.bloodPressureSys,
+                    fromServer.bloodPressureDia, fromServer.glucoseMgdl
+                ).isNotEmpty() -> MetricsState(
+                    steps = fromServer.steps?.toString() ?: "",
+                    weightKg = fromServer.weightKg?.toString() ?: "",
+                    bloodPressureSys = fromServer.bloodPressureSys?.toString() ?: "",
+                    bloodPressureDia = fromServer.bloodPressureDia?.toString() ?: "",
+                    glucoseMgdl = fromServer.glucoseMgdl?.toString() ?: ""
+                )
+                else -> try {
+                    val saved = cache?.getMetrics(user?.id ?: "")
+                    if (saved != null) MetricsState(
+                        steps = saved.steps?.toString() ?: "",
+                        weightKg = saved.weightKg?.toString() ?: "",
+                        bloodPressureSys = saved.bloodPressureSys?.toString() ?: "",
+                        bloodPressureDia = saved.bloodPressureDia?.toString() ?: "",
+                        glucoseMgdl = saved.glucoseMgdl?.toString() ?: ""
+                    ) else MetricsState()
+                } catch (_: Exception) {
+                    MetricsState()
+                }
             }
             _state.update { it.copy(user = user, isLoading = false, metrics = metrics) }
         }
@@ -93,31 +116,56 @@ class ProfileViewModel(
 
     fun updateMetric(field: MetricField, value: String) {
         _state.update { s ->
+            val m = s.metrics
             s.copy(metrics = when (field) {
-                MetricField.STEPS    -> s.metrics.copy(steps = value, saved = false)
-                MetricField.WEIGHT   -> s.metrics.copy(weightKg = value, saved = false)
-                MetricField.BP_SYS   -> s.metrics.copy(bloodPressureSys = value, saved = false)
-                MetricField.BP_DIA   -> s.metrics.copy(bloodPressureDia = value, saved = false)
-                MetricField.GLUCOSE  -> s.metrics.copy(glucoseMgdl = value, saved = false)
-            })
+                MetricField.STEPS    -> m.copy(steps = value)
+                MetricField.WEIGHT   -> m.copy(weightKg = value)
+                MetricField.BP_SYS   -> m.copy(bloodPressureSys = value)
+                MetricField.BP_DIA   -> m.copy(bloodPressureDia = value)
+                MetricField.GLUCOSE  -> m.copy(glucoseMgdl = value)
+            }.copy(saved = false, error = null))
         }
     }
 
+    /**
+     * Antes esto sólo escribía en el caché local y mostraba "✓ Guardado" pase lo que pase: en
+     * la web (sin caché) no se guardaba nada, y en ningún caso llegaba al servidor. Ahora el
+     * "Guardado" sólo aparece cuando el servidor confirmó.
+     */
     fun saveMetrics() {
-        val userId = _state.value.user?.id ?: return
-        val m = _state.value.metrics
-        scope.launch {
-            try {
-                cache?.upsertMetrics(
-                    userId = userId,
-                    steps = m.steps.toLongOrNull(),
-                    weightKg = m.weightKg.toDoubleOrNull(),
-                    bloodPressureSys = m.bloodPressureSys.toLongOrNull(),
-                    bloodPressureDia = m.bloodPressureDia.toLongOrNull(),
-                    glucoseMgdl = m.glucoseMgdl.toLongOrNull(),
-                )
-            } catch (_: Exception) { /* table may not exist yet on old DB */ }
-            _state.update { it.copy(metrics = it.metrics.copy(saved = true)) }
+        val current = _state.value.metrics
+        if (current.saving) return
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+        when (val input = buildMetricsRequest(current, today)) {
+            is MetricsInput.Invalid -> _state.update { it.copy(metrics = it.metrics.copy(error = input.message)) }
+            is MetricsInput.Ok -> {
+                _state.update { it.copy(metrics = it.metrics.copy(saving = true, saved = false, error = null)) }
+                scope.launch {
+                    metricsRepo.save(input.request)
+                        .onSuccess {
+                            val userId = _state.value.user?.id
+                            if (userId != null) try {
+                                cache?.upsertMetrics(
+                                    userId = userId,
+                                    steps = input.request.steps?.toLong(),
+                                    weightKg = input.request.weightKg,
+                                    bloodPressureSys = input.request.bloodPressureSys?.toLong(),
+                                    bloodPressureDia = input.request.bloodPressureDia?.toLong(),
+                                    glucoseMgdl = input.request.glucoseMgdl?.toLong(),
+                                )
+                            } catch (_: Exception) { /* el caché es sólo respaldo sin conexión */ }
+                            _state.update { it.copy(metrics = it.metrics.copy(saving = false, saved = true)) }
+                        }
+                        .onFailure {
+                            _state.update {
+                                it.copy(metrics = it.metrics.copy(
+                                    saving = false,
+                                    error = "No se pudo guardar. Revisa los valores y tu conexión."
+                                ))
+                            }
+                        }
+                }
+            }
         }
     }
 }
@@ -298,8 +346,17 @@ class ProfileScreen : Screen {
             }
 
             Spacer(Modifier.height(10.dp))
+            state.metrics.error?.let { message ->
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
             Button(
                 onClick = vm::saveMetrics,
+                enabled = !state.metrics.saving,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -307,7 +364,11 @@ class ProfileScreen : Screen {
                 )
             ) {
                 Text(
-                    if (state.metrics.saved) "✓ Guardado" else "Guardar métricas",
+                    when {
+                        state.metrics.saving -> "Guardando…"
+                        state.metrics.saved -> "✓ Guardado"
+                        else -> "Guardar métricas"
+                    },
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )

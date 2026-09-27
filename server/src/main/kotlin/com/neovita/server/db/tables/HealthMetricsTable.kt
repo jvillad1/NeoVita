@@ -8,6 +8,12 @@ object HealthMetricsTable : Table("health_metrics") {
     val steps = integer("steps").nullable()
     val sleepMinutes = integer("sleep_minutes").nullable()
     val avgHeartRate = integer("avg_heart_rate").nullable()
+    // Registro manual desde Perfil > "Mis métricas". Columnas nuevas y nullable: se agregan
+    // solas con createMissingTablesAndColumns, sin migración.
+    val weightKg = double("weight_kg").nullable()
+    val bloodPressureSys = integer("bp_systolic").nullable()
+    val bloodPressureDia = integer("bp_diastolic").nullable()
+    val glucoseMgdl = integer("glucose_mgdl").nullable()
     val updatedAt = long("updated_at")
     override val primaryKey = PrimaryKey(userId, date)
 }
