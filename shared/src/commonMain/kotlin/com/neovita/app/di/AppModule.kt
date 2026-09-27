@@ -23,6 +23,6 @@ val appModule = module {
     factory { AssessmentViewModel(get(), getOrNull()) }
     factory { OnboardingViewModel(get()) }
     factory { ResultsViewModel(get()) }
-    factory { ProfileViewModel(get(), getOrNull()) }
+    factory { ProfileViewModel(get(), getOrNull(), get()) }
     factory { ContentAdminViewModel(get()) }
 }

@@ -44,6 +44,18 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
         Unit
     }
 
+    suspend fun saveManualMetrics(req: ManualMetricsRequest): Result<Unit> = safeCall {
+        httpClient.post("$baseUrl/health/manual") {
+            contentType(ContentType.Application.Json)
+            setBody(req)
+        }
+        Unit
+    }
+
+    suspend fun getManualMetrics(): Result<ManualMetricsDto> = safeCall {
+        httpClient.get("$baseUrl/health/manual").body()
+    }
+
     suspend fun getHealthSummary(): Result<HealthSummaryDto> = safeCall {
         httpClient.get("$baseUrl/health/summary").body()
     }
