@@ -8,4 +8,8 @@ interface AssessmentRepository {
         sleepHours: String, sleepQuality: Int, mainGoal: String
     ): Result<Assessment>
     suspend fun getLatestAssessment(userId: String): Assessment?
+
+    /** Autoservicio: borra el historial de evaluaciones y el plan asociado, para empezar
+     *  de cero sin pedirle a nadie que lo haga por SQL. */
+    suspend fun resetHistory(): Result<Unit>
 }

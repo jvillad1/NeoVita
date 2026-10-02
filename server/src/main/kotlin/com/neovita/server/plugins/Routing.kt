@@ -46,7 +46,7 @@ fun Application.configureRouting(
             configRoutes(googleClientId, googleClientIdIos, appConfig)
             authRoutes(googleAuthService, jwtService, userRepo)
             userRoutes(userRepo)
-            assessmentRoutes(assessmentRepo)
+            assessmentRoutes(assessmentRepo, planRepo)
             planRoutes(claudeService, assessmentRepo, planRepo)
             chatRoutes(claudeService)
             b2bRoutes(userRepo, assessmentRepo)
