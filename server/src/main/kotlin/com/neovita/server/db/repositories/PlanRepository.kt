@@ -5,6 +5,8 @@ import com.neovita.shared.network.dto.PillarScoresDto
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.UUID
 
@@ -29,6 +31,12 @@ class PlanRepository {
             }
         }
         return PlanEntity(id, userId, now, planContent, scores)
+    }
+
+    /** Autoservicio desde Perfil: se borra junto con las evaluaciones — un plan sin la
+     *  evaluación que lo originó no tiene con qué explicarse. */
+    fun deleteAllForUser(userId: String): Int = transaction {
+        PlansTable.deleteWhere { PlansTable.userId eq userId }
     }
 
     fun findCurrent(userId: String): PlanEntity? = transaction {

@@ -118,4 +118,48 @@ class AssessmentRoutesTest {
         val body = latest.bodyAsText()
         assertEquals(true, body.contains("Menos de 5 horas"), body)
     }
+
+    @Test
+    fun `deletes only the caller's own assessments and plans`() = testApplication {
+        environment { config = testConfig("assessment_reset") }
+        application { module() }
+        startApplication()
+        val client = createClient { install(ContentNegotiation) { json() } }
+        val userA = UserRepository().upsert("a@test.dev", "A")
+        val userB = UserRepository().upsert("b@test.dev", "B")
+        val tokenA = jwtService.generateToken(userA.id, "USER")
+        val tokenB = jwtService.generateToken(userB.id, "USER")
+
+        suspend fun save(token: String) = client.post("/api/assessments") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"exerciseFrequency":"2-3 veces","exerciseType":"Cardio (caminar, correr, ciclismo)","sleepHours":"7-8 horas","sleepQuality":8,"mainGoal":"Aumentar energía y vitalidad"}""")
+        }
+        save(tokenA)
+        save(tokenB)
+
+        val response = client.delete("/api/assessments") {
+            header(HttpHeaders.Authorization, "Bearer $tokenA")
+        }
+
+        assertEquals(HttpStatusCode.NoContent, response.status)
+        assertEquals(
+            HttpStatusCode.NotFound,
+            client.get("/api/assessments/latest") { header(HttpHeaders.Authorization, "Bearer $tokenA") }.status,
+            "el historial de A debía quedar vacío"
+        )
+        assertEquals(
+            HttpStatusCode.OK,
+            client.get("/api/assessments/latest") { header(HttpHeaders.Authorization, "Bearer $tokenB") }.status,
+            "el reinicio de A no debía tocar el historial de B"
+        )
+    }
+
+    @Test
+    fun `reset requires auth`() = testApplication {
+        environment { config = testConfig("assessment_reset_401") }
+        application { module() }
+
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/api/assessments").status)
+    }
 }

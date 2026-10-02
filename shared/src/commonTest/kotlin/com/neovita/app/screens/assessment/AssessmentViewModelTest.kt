@@ -47,6 +47,7 @@ class AssessmentViewModelTest {
         }
 
         override suspend fun getLatestAssessment(userId: String): Assessment? = null
+        override suspend fun resetHistory(): Result<Unit> = Result.success(Unit)
     }
 
     private fun responderTodo(vm: AssessmentViewModel) {
