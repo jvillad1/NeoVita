@@ -81,6 +81,11 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
         httpClient.get("$baseUrl/assessments/latest").body()
     }
 
+    suspend fun resetAssessmentHistory(): Result<Unit> = safeCall {
+        httpClient.delete("$baseUrl/assessments")
+        Unit
+    }
+
     /** Equipo del empleador. El servidor exige rol EMPLOYER y responde 403 si no lo tiene. */
     suspend fun getTeam(): Result<TeamResponse> = safeCall {
         httpClient.get("$baseUrl/b2b/team").body()

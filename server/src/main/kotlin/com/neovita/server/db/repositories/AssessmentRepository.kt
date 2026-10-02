@@ -6,6 +6,7 @@ import com.neovita.shared.domain.usecase.CalculateScoresUseCase
 import com.neovita.shared.network.dto.PillarScoresDto
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.UUID
 
@@ -41,6 +42,11 @@ class AssessmentRepository(private val healthRepository: HealthRepository? = nul
             }
         }
         return AssessmentEntity(id, userId, now, frequency, type, sleepHours, sleepQuality, goal, scores)
+    }
+
+    /** Autoservicio desde Perfil: la persona borra su propio historial para empezar de cero. */
+    fun deleteAllForUser(userId: String): Int = transaction {
+        AssessmentsTable.deleteWhere { AssessmentsTable.userId eq userId }
     }
 
     fun findLatest(userId: String): AssessmentEntity? = transaction {

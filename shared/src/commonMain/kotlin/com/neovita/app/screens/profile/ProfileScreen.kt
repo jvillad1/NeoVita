@@ -41,6 +41,7 @@ import com.neovita.app.ui.theme.*
 import com.neovita.shared.config.RemoteConfigRepository
 import com.neovita.shared.config.isFeatureEnabled
 import com.neovita.shared.data.cache.LocalCache
+import com.neovita.shared.domain.repository.AssessmentRepository
 import com.neovita.shared.domain.repository.ManualMetricsRepository
 import com.neovita.shared.domain.repository.UserRepository
 import com.neovita.shared.network.ApiService
@@ -64,16 +65,29 @@ data class MetricsState(
     val error: String? = null
 )
 
+data class EditProfileState(
+    val name: String = "",
+    val age: String = "",
+    val saving: Boolean = false,
+    val error: String? = null
+)
+
+enum class ResetHistoryStep { CONFIRM, WORKING, DONE }
+
 data class ProfileState(
     val user: UserDto? = null,
     val isLoading: Boolean = true,
-    val metrics: MetricsState = MetricsState()
+    val metrics: MetricsState = MetricsState(),
+    val editProfile: EditProfileState? = null,         // null = diálogo cerrado
+    val resetHistoryStep: ResetHistoryStep? = null,     // null = diálogo cerrado
+    val resetHistoryError: String? = null
 )
 
 class ProfileViewModel(
     private val userRepo: UserRepository,
     private val cache: LocalCache?,
-    private val metricsRepo: ManualMetricsRepository
+    private val metricsRepo: ManualMetricsRepository,
+    private val assessmentRepo: AssessmentRepository
 ) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(ProfileState())
@@ -168,6 +182,58 @@ class ProfileViewModel(
             }
         }
     }
+// --- Editar Perfil (nombre y edad) ---
+
+    fun startEditProfile() {
+        val user = _state.value.user ?: return
+        _state.update {
+            it.copy(editProfile = EditProfileState(name = user.name, age = user.age.takeIf { a -> a > 0 }?.toString() ?: ""))
+        }
+    }
+
+    fun updateEditName(v: String) = _state.update { it.copy(editProfile = it.editProfile?.copy(name = v, error = null)) }
+    fun updateEditAge(v: String) = _state.update { it.copy(editProfile = it.editProfile?.copy(age = v.filter(Char::isDigit), error = null)) }
+    fun dismissEditProfile() = _state.update { it.copy(editProfile = null) }
+
+    fun saveProfile() {
+        val edit = _state.value.editProfile ?: return
+        val name = edit.name.trim()
+        val age = edit.age.toIntOrNull()
+        if (name.isEmpty()) {
+            _state.update { it.copy(editProfile = it.editProfile?.copy(error = "El nombre no puede estar vacío")) }
+            return
+        }
+        if (age == null || age < 18 || age > 120) {
+            _state.update { it.copy(editProfile = it.editProfile?.copy(error = "Ingresa una edad válida")) }
+            return
+        }
+        _state.update { it.copy(editProfile = it.editProfile?.copy(saving = true, error = null)) }
+        scope.launch {
+            userRepo.updateMe(name = name, age = age)
+                .onSuccess { updated -> _state.update { it.copy(user = updated, editProfile = null) } }
+                .onFailure {
+                    _state.update { it.copy(editProfile = it.editProfile?.copy(saving = false, error = "No se pudo guardar. Intenta de nuevo.")) }
+                }
+        }
+    }
+
+    // --- Reiniciar historial de evaluaciones (autoservicio) ---
+
+    fun requestResetHistory() = _state.update { it.copy(resetHistoryStep = ResetHistoryStep.CONFIRM, resetHistoryError = null) }
+    fun dismissResetHistory() = _state.update { it.copy(resetHistoryStep = null, resetHistoryError = null) }
+
+    fun confirmResetHistory() {
+        _state.update { it.copy(resetHistoryStep = ResetHistoryStep.WORKING) }
+        scope.launch {
+            assessmentRepo.resetHistory()
+                .onSuccess { _state.update { it.copy(resetHistoryStep = ResetHistoryStep.DONE) } }
+                .onFailure {
+                    _state.update {
+                        it.copy(resetHistoryStep = ResetHistoryStep.CONFIRM, resetHistoryError = "No se pudo reiniciar. Intenta de nuevo.")
+                    }
+                }
+        }
+    }
 }
 
 class ProfileScreen : Screen {
@@ -223,7 +289,7 @@ class ProfileScreen : Screen {
                 Spacer(Modifier.width(20.dp))
                 // Edit Profile pill button
                 Surface(
-                    onClick = {},
+                    onClick = vm::startEditProfile,
                     shape = RoundedCornerShape(24.dp),
                     color = NeoCrimson
                 ) {
@@ -246,6 +312,13 @@ class ProfileScreen : Screen {
                 color = NeoTextPrimary,
                 fontWeight = FontWeight.Bold
             )
+            state.user?.age?.takeIf { it > 0 }?.let { age ->
+                Text(
+                    "$age años",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = NeoTextSecondary
+                )
+            }
             Text(
                 "Longevity Explorer",
                 style = MaterialTheme.typography.bodyMedium,
@@ -390,6 +463,12 @@ class ProfileScreen : Screen {
                         onClick = { navigator.parent?.push(AssessmentScreen()) }
                     )
                     HorizontalDivider(color = NeoDarkSurface2)
+                    SettingsItem(
+                        icon = "🗑️",
+                        title = "Reiniciar historial de evaluaciones",
+                        onClick = vm::requestResetHistory
+                    )
+                    HorizontalDivider(color = NeoDarkSurface2)
                     // "healthSync" nace apagado: la entrada solo aparece cuando el servidor
                     // la enciende (ship dormant), y leer datos siempre lo inicia la usuaria.
                     val healthConfig by koinInject<RemoteConfigRepository>().config.collectAsState()
@@ -486,6 +565,112 @@ class ProfileScreen : Screen {
 
             Spacer(Modifier.height(24.dp))
         }
+
+        state.editProfile?.let { edit ->
+            EditProfileDialog(
+                state = edit,
+                onNameChange = vm::updateEditName,
+                onAgeChange = vm::updateEditAge,
+                onDismiss = vm::dismissEditProfile,
+                onSave = vm::saveProfile
+            )
+        }
+
+        state.resetHistoryStep?.let { step ->
+            ResetHistoryDialog(
+                step = step,
+                error = state.resetHistoryError,
+                onConfirm = vm::confirmResetHistory,
+                onDismiss = vm::dismissResetHistory,
+                onDone = { vm.dismissResetHistory(); navigator.parent?.push(AssessmentScreen()) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditProfileDialog(
+    state: EditProfileState,
+    onNameChange: (String) -> Unit,
+    onAgeChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!state.saving) onDismiss() },
+        title = { Text("Editar perfil") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = state.name,
+                    onValueChange = onNameChange,
+                    label = { Text("Nombre") },
+                    singleLine = true,
+                    enabled = !state.saving,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = state.age,
+                    onValueChange = onAgeChange,
+                    label = { Text("Edad") },
+                    singleLine = true,
+                    enabled = !state.saving,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                state.error?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onSave, enabled = !state.saving) {
+                Text(if (state.saving) "Guardando…" else "Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !state.saving) { Text("Cancelar") }
+        }
+    )
+}
+
+@Composable
+private fun ResetHistoryDialog(
+    step: ResetHistoryStep,
+    error: String?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    onDone: () -> Unit
+) {
+    when (step) {
+        ResetHistoryStep.CONFIRM -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("¿Reiniciar tu historial?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Se borran todas tus evaluaciones y tu plan actual. Esto no se puede deshacer.")
+                    error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onConfirm) {
+                    Text("Sí, reiniciar", color = NeoRed)
+                }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        )
+        ResetHistoryStep.WORKING -> AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Reiniciando…") },
+            text = { Text("Esto toma solo un momento.") },
+            confirmButton = {}
+        )
+        ResetHistoryStep.DONE -> AlertDialog(
+            onDismissRequest = onDone,
+            title = { Text("Listo") },
+            text = { Text("Tu historial se reinició. Vamos a hacer una nueva evaluación.") },
+            confirmButton = { TextButton(onClick = onDone) { Text("Continuar") } }
+        )
     }
 }
 

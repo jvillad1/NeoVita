@@ -1,5 +1,7 @@
 package com.neovita.app.screens.profile
 
+import com.neovita.shared.domain.model.Assessment
+import com.neovita.shared.domain.repository.AssessmentRepository
 import com.neovita.shared.domain.repository.ManualMetricsRepository
 import com.neovita.shared.domain.repository.UserRepository
 import com.neovita.shared.network.dto.ManualMetricsDto
@@ -33,6 +35,19 @@ class ProfileViewModelMetricsTest {
         override suspend fun updateMe(name: String?, age: Int?) = getMe()
     }
 
+    private class FakeAssessments : AssessmentRepository {
+        var resetCalled = false
+        override suspend fun saveAssessment(
+            exerciseFrequency: String, exerciseType: String,
+            sleepHours: String, sleepQuality: Int, mainGoal: String
+        ): Result<Assessment> = error("not used by ProfileViewModel tests")
+        override suspend fun getLatestAssessment(userId: String): Assessment? = null
+        override suspend fun resetHistory(): Result<Unit> {
+            resetCalled = true
+            return Result.success(Unit)
+        }
+    }
+
     private class FakeMetrics(
         val failSave: Boolean = false,
         val stored: ManualMetricsDto = ManualMetricsDto()
@@ -48,7 +63,7 @@ class ProfileViewModelMetricsTest {
     @Test
     fun `a confirmed save shows Guardado and sends what was typed`() = runTest {
         val repo = FakeMetrics()
-        val vm = ProfileViewModel(FakeUsers(), null, repo)
+        val vm = ProfileViewModel(FakeUsers(), null, repo, FakeAssessments())
         vm.updateMetric(MetricField.WEIGHT, "72,5")
 
         vm.saveMetrics()
@@ -63,7 +78,7 @@ class ProfileViewModelMetricsTest {
 
     @Test
     fun `a failed save does not pretend it saved`() = runTest {
-        val vm = ProfileViewModel(FakeUsers(), null, FakeMetrics(failSave = true))
+        val vm = ProfileViewModel(FakeUsers(), null, FakeMetrics(failSave = true), FakeAssessments())
         vm.updateMetric(MetricField.WEIGHT, "72.5")
 
         vm.saveMetrics()
@@ -76,7 +91,7 @@ class ProfileViewModelMetricsTest {
     @Test
     fun `an invalid form reports the error without calling the server`() = runTest {
         val repo = FakeMetrics()
-        val vm = ProfileViewModel(FakeUsers(), null, repo)
+        val vm = ProfileViewModel(FakeUsers(), null, repo, FakeAssessments())
         vm.updateMetric(MetricField.BP_SYS, "120")
 
         vm.saveMetrics()
@@ -87,7 +102,7 @@ class ProfileViewModelMetricsTest {
 
     @Test
     fun `the form opens with what the server already has`() = runTest {
-        val vm = ProfileViewModel(FakeUsers(), null, FakeMetrics(stored = ManualMetricsDto(weightKg = 71.0, glucoseMgdl = 95)))
+        val vm = ProfileViewModel(FakeUsers(), null, FakeMetrics(stored = ManualMetricsDto(weightKg = 71.0, glucoseMgdl = 95)), FakeAssessments())
 
         val m = vm.state.value.metrics
         assertEquals("71.0", m.weightKg)
@@ -97,7 +112,7 @@ class ProfileViewModelMetricsTest {
 
     @Test
     fun `editing a field clears the saved mark and the error`() = runTest {
-        val vm = ProfileViewModel(FakeUsers(), null, FakeMetrics())
+        val vm = ProfileViewModel(FakeUsers(), null, FakeMetrics(), FakeAssessments())
         vm.updateMetric(MetricField.WEIGHT, "72")
         vm.saveMetrics()
         assertTrue(vm.state.value.metrics.saved)

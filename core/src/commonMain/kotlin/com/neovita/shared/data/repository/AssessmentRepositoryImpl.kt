@@ -32,4 +32,6 @@ class AssessmentRepositoryImpl(
         // model (it returned null), so behaviour is unchanged when no cache is present.
         return apiService.getLatestAssessment().getOrNull()?.toDomain()
     }
+
+    override suspend fun resetHistory(): Result<Unit> = apiService.resetAssessmentHistory()
 }
