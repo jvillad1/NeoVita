@@ -1,7 +1,7 @@
 package com.neovita.app.screens.b2b
 
 import com.neovita.shared.domain.repository.TeamRepository
-import com.neovita.shared.network.dto.TeamMemberDto
+import com.neovita.shared.network.dto.TeamResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -11,13 +11,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class B2BState(
-    val members: List<TeamMemberDto> = emptyList(),
-    val avgScore: Int = 0,
+    val team: TeamResponse = TeamResponse(),
     val isLoading: Boolean = true,
     val error: String? = null
 ) {
     /** Miembros que todavía no han respondido la evaluación: no cuentan para el promedio. */
-    val sinEvaluar: Int get() = members.count { it.scores == null }
+    val sinEvaluar: Int get() = team.totalMembers - team.evaluatedCount
+
+    /** El servidor no manda promedios hasta que responda un mínimo de personas. */
+    val faltanEvaluaciones: Boolean get() = team.averages == null
+
+    val evaluacionesQueFaltan: Int get() = (team.minGroupSize - team.evaluatedCount).coerceAtLeast(0)
 }
 
 class B2BViewModel(private val teamRepo: TeamRepository) {
@@ -33,7 +37,7 @@ class B2BViewModel(private val teamRepo: TeamRepository) {
             teamRepo.getTeam()
                 .onSuccess { r ->
                     _state.update {
-                        it.copy(members = r.team, avgScore = r.avgScore, isLoading = false)
+                        it.copy(team = r, isLoading = false)
                     }
                 }
                 .onFailure {
