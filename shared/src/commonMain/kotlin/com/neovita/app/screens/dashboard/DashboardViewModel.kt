@@ -7,10 +7,12 @@ import com.neovita.shared.data.cache.LocalCache
 import com.neovita.shared.domain.model.LongevityPlan
 import com.neovita.shared.domain.repository.AnalyticsRepository
 import com.neovita.shared.domain.repository.ContentRepository
+import com.neovita.shared.domain.repository.HabitRepository
 import com.neovita.shared.domain.repository.PlanRepository
 import com.neovita.shared.domain.repository.UserRepository
 import com.neovita.shared.network.ApiService
 import com.neovita.shared.network.dto.ContentItemDto
+import com.neovita.shared.network.dto.HabitStatusDto
 import com.neovita.shared.network.dto.ScreenDefinitionDto
 import com.neovita.shared.network.dto.UserDto
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,6 +47,9 @@ data class DashboardState(
     val error: String? = null,
     val feed: List<ContentItem> = emptyList(),
     val screenDef: ScreenDefinitionDto? = null,
+    val habits: HabitStatusDto = HabitStatusDto(),
+    /** Hábitos con un toggle en vuelo: evita doble-tap mientras responde el servidor. */
+    val habitsUpdating: Set<String> = emptySet(),
 )
 
 private val ALL_CONTENT = listOf(
@@ -72,6 +77,7 @@ class DashboardViewModel(
     private val apiService: ApiService,
     private val localCache: LocalCache?,
     private val analyticsRepo: AnalyticsRepository? = null,
+    private val habitRepo: HabitRepository? = null,
 ) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val _state = MutableStateFlow(DashboardState())
@@ -79,7 +85,47 @@ class DashboardViewModel(
 
     // El dashboard es la primera pantalla tras el login, así que su carga es la señal de
     // sesión más simple para medir retención (día 7, semanal) — ver docs/NeoVita_Estrategia_Lanzamiento.pdf.
-    init { load(); loadScreen(); logSessionStart() }
+    init { load(); loadScreen(); logSessionStart(); loadHabits() }
+
+    private fun loadHabits() {
+        scope.launch {
+            habitRepo?.getToday()?.getOrNull()?.let { h -> _state.update { it.copy(habits = h) } }
+        }
+    }
+
+    /**
+     * Optimista: marca el hábito de inmediato (se siente instantáneo al tocarlo) y lo
+     * reconcilia con lo que confirme el servidor — incluida la racha nueva, que el cliente
+     * no sabría calcular sin reimplementar la regla de "ayer sin romperse" del servidor.
+     */
+    fun toggleHabit(habitId: String) {
+        if (habitId in _state.value.habitsUpdating) return
+        val wasLogged = habitId in _state.value.habits.loggedHabitIds
+        _state.update {
+            it.copy(
+                habits = it.habits.copy(
+                    loggedHabitIds = if (wasLogged) it.habits.loggedHabitIds - habitId else it.habits.loggedHabitIds + habitId
+                ),
+                habitsUpdating = it.habitsUpdating + habitId
+            )
+        }
+        scope.launch {
+            habitRepo?.toggle(habitId)
+                ?.onSuccess { h -> _state.update { it.copy(habits = h, habitsUpdating = it.habitsUpdating - habitId) } }
+                ?.onFailure {
+                    // El servidor no confirmó: se revierte al estado real conocido en vez de
+                    // dejar la UI mintiendo sobre si el hábito quedó marcado.
+                    _state.update {
+                        it.copy(
+                            habits = it.habits.copy(
+                                loggedHabitIds = if (wasLogged) it.habits.loggedHabitIds + habitId else it.habits.loggedHabitIds - habitId
+                            ),
+                            habitsUpdating = it.habitsUpdating - habitId
+                        )
+                    }
+                }
+        }
+    }
 
     private fun logSessionStart() {
         scope.launch { analyticsRepo?.logEvent("session_start") }

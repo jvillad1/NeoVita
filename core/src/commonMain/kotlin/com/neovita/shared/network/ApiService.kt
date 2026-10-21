@@ -86,6 +86,14 @@ class ApiService(private val baseUrl: String, private val httpClient: HttpClient
         Unit
     }
 
+    suspend fun getHabitsToday(): Result<HabitStatusDto> = safeCall {
+        httpClient.get("$baseUrl/habits/today").body()
+    }
+
+    suspend fun toggleHabit(habitId: String): Result<HabitStatusDto> = safeCall {
+        httpClient.post("$baseUrl/habits/$habitId/toggle").body()
+    }
+
     /** Equipo del empleador. El servidor exige rol EMPLOYER y responde 403 si no lo tiene. */
     suspend fun getTeam(): Result<TeamResponse> = safeCall {
         httpClient.get("$baseUrl/b2b/team").body()
