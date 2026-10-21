@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -14,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -77,33 +79,38 @@ private val EXP_CARDS = listOf(
     ),
 )
 
-// ── Blue Zones habits card data ───────────────────────────────────────────────
+// ── Blue Zones habits (trackable) ──────────────────────────────────────────────
 
-private val HABIT_CARDS = listOf(
-    ExpCard(
-        "Meditación Diaria", "5-20 min · Reduce cortisol",
+private data class HabitCardDef(
+    val id: String, val title: String, val subtitle: String,
+    val imageUrl: String, val fallbackColors: List<Color>
+)
+
+private val HABIT_CARD_DEFS = listOf(
+    HabitCardDef(
+        "meditation", "Meditación Diaria", "5-20 min · Reduce cortisol",
         "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&q=80",
-        listOf(Color(0xFF1A0A3C), Color(0xFF3A1060), Color(0xFF5C1A8C)), 4.9f, "Gratis"
+        listOf(Color(0xFF1A0A3C), Color(0xFF3A1060), Color(0xFF5C1A8C))
     ),
-    ExpCard(
-        "Dieta Plant-Based", "Zonas Azules · Evidencia científica",
+    HabitCardDef(
+        "plant_based_diet", "Dieta Plant-Based", "Zonas Azules · Evidencia científica",
         "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=300&q=80",
-        listOf(Color(0xFF0A2A0A), Color(0xFF1A5A20), Color(0xFF2A8A30)), 4.8f, "Plan incluido"
+        listOf(Color(0xFF0A2A0A), Color(0xFF1A5A20), Color(0xFF2A8A30))
     ),
-    ExpCard(
-        "Caminar 10K Pasos", "Movimiento natural · Cada día",
+    HabitCardDef(
+        "walk_10k", "Caminar 10K Pasos", "Movimiento natural · Cada día",
         "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=300&q=80",
-        listOf(Color(0xFF0A1A3A), Color(0xFF1A3A7A), Color(0xFF2A5AAA)), 4.7f, "Sin costo"
+        listOf(Color(0xFF0A1A3A), Color(0xFF1A3A7A), Color(0xFF2A5AAA))
     ),
-    ExpCard(
-        "Sueño 8 Horas", "Ciclos REM · Recuperación celular",
+    HabitCardDef(
+        "sleep_8h", "Sueño 8 Horas", "Ciclos REM · Recuperación celular",
         "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=300&q=80",
-        listOf(Color(0xFF1A1A3C), Color(0xFF2A2A6C), Color(0xFF3A3A9C)), 4.9f, "Guía incluida"
+        listOf(Color(0xFF1A1A3C), Color(0xFF2A2A6C), Color(0xFF3A3A9C))
     ),
-    ExpCard(
-        "Vínculos Sociales", "Tribu · Propósito compartido",
+    HabitCardDef(
+        "social_bonds", "Vínculos Sociales", "Tribu · Propósito compartido",
         "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&q=80",
-        listOf(Color(0xFF3A0A1A), Color(0xFF6A1A2A), Color(0xFF8B1042)), 4.8f, "Comunidad"
+        listOf(Color(0xFF3A0A1A), Color(0xFF6C1A3A), Color(0xFF9C2A5A))
     ),
 )
 
@@ -174,7 +181,7 @@ class DashboardScreen : Screen {
                 }
             }
         } else {
-            DashboardFallback(state)
+            DashboardFallback(state, onToggleHabit = vm::toggleHabit)
         }
     }
 }
@@ -217,7 +224,7 @@ private fun SduiGreetingHeader(nombre: String?) {
 //    SDUI composables (SduiCard/SduiRenderer) with it. ─────────────────────────────
 
 @Composable
-private fun DashboardFallback(state: DashboardState) {
+private fun DashboardFallback(state: DashboardState, onToggleHabit: (String) -> Unit) {
     var show by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { show = true }
 
@@ -274,13 +281,18 @@ private fun DashboardFallback(state: DashboardState) {
                     }
                 }
 
-                // ── Blue Zones habits section ─────────────────────────────────
+                // ── Blue Zones habits section (trackable) ───────────────────────
                 item {
                     AnimatedVisibility(
                         visible = show,
                         enter = fadeIn(tween(450, delayMillis = 300)) + slideInVertically(tween(450, delayMillis = 300)) { it / 3 }
                     ) {
-                        CardSection("Hábitos de Zonas Azules", HABIT_CARDS)
+                        HabitSection(
+                            loggedHabitIds = state.habits.loggedHabitIds.toSet(),
+                            updatingIds = state.habitsUpdating,
+                            streak = state.habits.streak,
+                            onToggle = onToggleHabit
+                        )
                     }
                 }
 
@@ -317,6 +329,127 @@ private fun CardSection(title: String, cards: List<ExpCard>) {
         ) {
             items(cards) { card -> ExpCardItem(card) }
         }
+    }
+}
+
+@Composable
+private fun HabitSection(
+    loggedHabitIds: Set<String>,
+    updatingIds: Set<String>,
+    streak: Int,
+    onToggle: (String) -> Unit
+) {
+    Column {
+        Row(
+            Modifier.fillMaxWidth()
+                .padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Hábitos de Zonas Azules", color = NeoTextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            if (streak > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🔥", fontSize = 15.sp)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (streak == 1) "1 día" else "$streak días",
+                        color = NeoCrimson, fontWeight = FontWeight.Bold, fontSize = 14.sp
+                    )
+                }
+            }
+        }
+        Text(
+            "Toca uno cuando lo completes hoy",
+            color = NeoTextSecondary, fontSize = 12.sp,
+            modifier = Modifier.padding(start = 22.dp, bottom = 10.dp)
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 22.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(HABIT_CARD_DEFS) { def ->
+                HabitCardItem(
+                    def = def,
+                    done = def.id in loggedHabitIds,
+                    updating = def.id in updatingIds,
+                    onClick = { onToggle(def.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HabitCardItem(def: HabitCardDef, done: Boolean, updating: Boolean, onClick: () -> Unit) {
+    Column(
+        Modifier
+            .width(130.dp)
+            .clickable(enabled = !updating, onClick = onClick)
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(155.dp)
+                .clip(RoundedCornerShape(12.dp))
+        ) {
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(def.fallbackColors)))
+            AsyncImage(
+                model = def.imageUrl,
+                contentDescription = def.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().alpha(if (done) 0.55f else 1f)
+            )
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)),
+                        startY = 55f
+                    )
+                )
+            )
+            Text(
+                def.title,
+                modifier = Modifier.align(Alignment.BottomStart).padding(10.dp),
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 15.sp,
+                maxLines = 2
+            )
+            // El check vive arriba a la derecha, fuera del texto: el estado "hecho" tiene
+            // que leerse de un vistazo, sin competir con el título de dos líneas.
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(if (done) NeoCrimson else Color.Black.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (updating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = Color.White
+                    )
+                } else if (done) {
+                    Text("✓", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(6.dp))
+
+        Text(def.subtitle, color = NeoTextSecondary, fontSize = 10.sp, maxLines = 1)
+
+        Spacer(Modifier.height(3.dp))
+
+        Text(
+            if (done) "Hecho hoy ✓" else "Marcar como hecho",
+            color = if (done) NeoCrimson else NeoTextSecondary,
+            fontSize = 10.sp,
+            fontWeight = if (done) FontWeight.SemiBold else FontWeight.Normal,
+            maxLines = 1
+        )
     }
 }
 

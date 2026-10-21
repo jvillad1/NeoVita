@@ -5,6 +5,7 @@ import com.neovita.server.db.repositories.AssessmentRepository
 import com.neovita.server.db.repositories.ContentRepository
 import com.neovita.server.db.repositories.DeviceTokenRepository
 import com.neovita.server.db.repositories.EventRepository
+import com.neovita.server.db.repositories.HabitRepository
 import com.neovita.server.db.repositories.HealthRepository
 import com.neovita.server.db.repositories.PlanRepository
 import com.neovita.server.db.repositories.ScreenRepository
@@ -35,7 +36,8 @@ fun Application.configureRouting(
     appConfig: AppRuntimeConfig = AppRuntimeConfig(emptyMap(), 0, 0, false, null),
     pushService: PushService = PushService(null),
     healthRepo: HealthRepository = HealthRepository(),
-    eventRepo: EventRepository = EventRepository()
+    eventRepo: EventRepository = EventRepository(),
+    habitRepo: HabitRepository = HabitRepository()
 ) {
     routing {
         get("/health") { call.respondText("OK") }
@@ -56,6 +58,7 @@ fun Application.configureRouting(
             pushRoutes(pushService, deviceTokenRepo, userRepo)
             healthRoutes(healthRepo)
             eventRoutes(eventRepo)
+            habitRoutes(habitRepo, eventRepo)
 
             // Sin esto, una ruta /api mal escrita cae en el catch-all estático de abajo y
             // devuelve 200 con el index.html de la web: un cliente recibe "éxito" con HTML
