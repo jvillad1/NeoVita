@@ -2,7 +2,6 @@ package com.neovita.app.screens.b2b
 
 import com.neovita.shared.domain.repository.TeamRepository
 import com.neovita.shared.network.dto.PillarScoresDto
-import com.neovita.shared.network.dto.TeamMemberDto
 import com.neovita.shared.network.dto.TeamResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -13,11 +12,12 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * El panel de empresa existía como maquetado sin datos. Estos tests fijan lo que un
- * empleador necesita que sea cierto al abrirlo.
+ * El panel de empresa sólo muestra agregados del equipo (Ley 1581: los puntajes son datos de
+ * salud). Estos tests fijan lo que un empleador ve al abrirlo.
  */
 class B2BViewModelTest {
 
@@ -28,39 +28,38 @@ class B2BViewModelTest {
         override suspend fun getTeam(): Result<TeamResponse> = resultado
     }
 
-    private fun miembro(nombre: String, overall: Int?) = TeamMemberDto(
-        userId = nombre, name = nombre, email = "$nombre@acme.co",
-        scores = overall?.let { PillarScoresDto(overall = it, exercise = it, sleep = it, nutrition = it) }
-    )
+    private val promedios = PillarScoresDto(overall = 70, exercise = 65, sleep = 72, nutrition = 74)
 
     @Test
-    fun `the team arrives with its average`() = runTest {
+    fun `the team arrives with its averages`() = runTest {
         val vm = B2BViewModel(FakeRepo(Result.success(
-            TeamResponse(listOf(miembro("ana", 80), miembro("beto", 60)), avgScore = 70)
+            TeamResponse(totalMembers = 8, evaluatedCount = 6, averages = promedios)
         )))
 
         val s = vm.state.value
-        assertEquals(2, s.members.size)
-        assertEquals(70, s.avgScore)
+        assertEquals(promedios, s.team.averages)
+        assertEquals(2, s.sinEvaluar)
+        assertEquals(false, s.faltanEvaluaciones)
         assertEquals(false, s.isLoading, "se quedó cargando para siempre")
     }
 
     @Test
-    fun `members without an assessment are counted, not hidden`() = runTest {
-        // Un empleador necesita ver a quién le falta responder: es su métrica de adopción.
+    fun `below the minimum it says how many answers are missing instead of showing a number`() = runTest {
         val vm = B2BViewModel(FakeRepo(Result.success(
-            TeamResponse(listOf(miembro("ana", 80), miembro("beto", null), miembro("cami", null)))
+            TeamResponse(totalMembers = 8, evaluatedCount = 3, averages = null, minGroupSize = 5)
         )))
 
-        assertEquals(3, vm.state.value.members.size, "no se puede esconder a quien no respondió")
-        assertEquals(2, vm.state.value.sinEvaluar)
+        val s = vm.state.value
+        assertNull(s.team.averages)
+        assertTrue(s.faltanEvaluaciones)
+        assertEquals(2, s.evaluacionesQueFaltan)
     }
 
     @Test
     fun `an empty team is not an error`() = runTest {
         val vm = B2BViewModel(FakeRepo(Result.success(TeamResponse())))
 
-        assertEquals(emptyList(), vm.state.value.members)
+        assertEquals(0, vm.state.value.team.totalMembers)
         assertEquals(null, vm.state.value.error, "una empresa sin miembros aún no es un fallo")
         assertEquals(false, vm.state.value.isLoading)
     }
