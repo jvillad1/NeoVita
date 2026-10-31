@@ -84,6 +84,12 @@ private fun TeamSummary(state: B2BState) {
             style = MaterialTheme.typography.titleLarge,
             color = NeoNavy, fontWeight = FontWeight.Bold
         )
+        state.fechaDeCorte?.let {
+            Text(
+                "Datos al $it · se actualizan como máximo una vez al mes",
+                style = MaterialTheme.typography.bodySmall, color = Color.Gray
+            )
+        }
         Spacer(Modifier.height(8.dp))
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -101,8 +107,8 @@ private fun TeamSummary(state: B2BState) {
     }
     Spacer(Modifier.height(16.dp))
     Text(
-        "Por privacidad, NeoVita sólo muestra resultados agregados del equipo: nunca el " +
-            "puntaje, el nombre ni las respuestas de una persona.",
+        "Por privacidad, NeoVita sólo muestra resultados agregados y redondeados del equipo: " +
+            "nunca el puntaje, el nombre ni las respuestas de una persona.",
         style = MaterialTheme.typography.bodySmall, color = Color.Gray
     )
 }

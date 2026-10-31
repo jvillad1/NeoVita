@@ -1,17 +1,20 @@
 package com.neovita.server.routes
 
 import com.neovita.server.db.repositories.AssessmentRepository
+import com.neovita.server.db.repositories.TeamSnapshotRepository
 import com.neovita.server.db.repositories.UserRepository
 import com.neovita.server.plugins.requireRole
-import com.neovita.shared.network.dto.PillarScoresDto
 import com.neovita.shared.network.dto.TeamResponse
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlin.math.roundToInt
 
-fun Route.b2bRoutes(userRepository: UserRepository, assessmentRepo: AssessmentRepository) {
+fun Route.b2bRoutes(
+    userRepository: UserRepository,
+    assessmentRepo: AssessmentRepository,
+    snapshots: TeamSnapshotRepository
+) {
     authenticate("jwt-auth") {
         get("/b2b/team") {
             if (!call.requireRole(userRepository, "EMPLOYER")) return@get
@@ -20,21 +23,18 @@ fun Route.b2bRoutes(userRepository: UserRepository, assessmentRepo: AssessmentRe
             // score can subtract it from the average, which shrinks the effective group by one.
             val employees = userRepository.findByCompany(user.companyId!!)
                 .filter { it.role != "EMPLOYER" }
-            val scores = assessmentRepo.latestScoresFor(employees.map { it.id }).values
+            val scores = assessmentRepo.latestScoresFor(employees.map { it.id })
+            // Never live numbers: see TeamSnapshotPolicy.
+            val snapshot = snapshots.currentFor(user.companyId, scores)
             call.respond(
                 TeamResponse(
                     totalMembers = employees.size,
                     evaluatedCount = scores.size,
-                    averages = if (scores.size >= TeamResponse.MIN_GROUP_SIZE) scores.average() else null
+                    averages = snapshot?.averages,
+                    asOf = snapshot?.createdAt
                 )
             )
         }
     }
 }
 
-private fun Collection<PillarScoresDto>.average() = PillarScoresDto(
-    overall = map { it.overall }.average().roundToInt(),
-    exercise = map { it.exercise }.average().roundToInt(),
-    sleep = map { it.sleep }.average().roundToInt(),
-    nutrition = map { it.nutrition }.average().roundToInt(),
-)
