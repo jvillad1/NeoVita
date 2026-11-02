@@ -56,6 +56,23 @@ class B2BViewModelTest {
     }
 
     @Test
+    fun `the averages say from when they are, in Bogota time`() = runTest {
+        // 2026-10-01T03:00Z is still September 30th in Colombia (UTC-5).
+        val vm = B2BViewModel(FakeRepo(Result.success(
+            TeamResponse(totalMembers = 6, evaluatedCount = 6, averages = promedios, asOf = 1_790_823_600_000)
+        )))
+
+        assertEquals("30 de septiembre de 2026", vm.state.value.fechaDeCorte)
+    }
+
+    @Test
+    fun `without averages there is no date to show`() = runTest {
+        val vm = B2BViewModel(FakeRepo(Result.success(TeamResponse(totalMembers = 6, evaluatedCount = 2))))
+
+        assertNull(vm.state.value.fechaDeCorte)
+    }
+
+    @Test
     fun `an empty team is not an error`() = runTest {
         val vm = B2BViewModel(FakeRepo(Result.success(TeamResponse())))
 

@@ -9,6 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import kotlinx.datetime.FixedOffsetTimeZone
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.toLocalDateTime
 
 data class B2BState(
     val team: TeamResponse = TeamResponse(),
@@ -22,6 +26,23 @@ data class B2BState(
     val faltanEvaluaciones: Boolean get() = team.averages == null
 
     val evaluacionesQueFaltan: Int get() = (team.minGroupSize - team.evaluatedCount).coerceAtLeast(0)
+
+    /** "30 de septiembre de 2026": los promedios son una foto, no datos en vivo. */
+    val fechaDeCorte: String? get() = team.asOf?.let { fechaLarga(it) }
+}
+
+private val MESES = listOf(
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+)
+
+// Colombia no tiene horario de verano: un desfase fijo evita depender de la base de husos
+// horarios, que en wasmJs no viene incluida.
+private val COLOMBIA = FixedOffsetTimeZone(UtcOffset(hours = -5))
+
+internal fun fechaLarga(epochMs: Long): String {
+    val d = Instant.fromEpochMilliseconds(epochMs).toLocalDateTime(COLOMBIA).date
+    return "${d.dayOfMonth} de ${MESES[d.monthNumber - 1]} de ${d.year}"
 }
 
 class B2BViewModel(private val teamRepo: TeamRepository) {
