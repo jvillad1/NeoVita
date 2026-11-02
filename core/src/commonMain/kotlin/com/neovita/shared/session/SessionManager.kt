@@ -19,6 +19,7 @@ object SessionManager {
     private val settings: Settings by lazy { Settings() }
 
     private const val KEY_TOKEN = "auth_token"
+    private const val KEY_CONSECUTIVE_401S = "consecutive_401s"
 
     private val _loggedIn = MutableStateFlow(!settings.getStringOrNull(KEY_TOKEN).isNullOrBlank())
     /** Reactive login state — App() resets to Login when this turns false. */
@@ -38,7 +39,16 @@ object SessionManager {
      */
     var pendingOnboarding: Boolean = false
 
-    private var consecutive401s = 0
+    // Persisted, NOT a plain var: a token that outlives its 24h expiry (jwt.expirationMs)
+    // fails every request with the same 401 forever, but someone who opens the app, sees it
+    // fail once or twice, and closes it before a 3rd attempt would reset this counter back to
+    // 0 on the next cold start with an in-memory var — the dead token never gets cleared, and
+    // the app is stuck broken indefinitely with no path back to Login. Persisting it lets
+    // failures accumulate *across* app launches until the real threshold is reached.
+    private var consecutive401s: Int
+        get() = settings.getInt(KEY_CONSECUTIVE_401S, 0)
+        set(value) { settings[KEY_CONSECUTIVE_401S] = value }
+
     private const val MAX_CONSECUTIVE_401S = 3
 
     /** Call on every successful authenticated response to reset the 401 streak. */
@@ -46,8 +56,9 @@ object SessionManager {
 
     /**
      * Call on every 401. Clears the session only after [MAX_CONSECUTIVE_401S] consecutive
-     * failures — avoids logging out on a single transient 401. Network errors (no
-     * connectivity) must NOT call this, so the app keeps working offline.
+     * failures — avoids logging out on a single transient 401 (e.g. a stray request sent on
+     * the old token right as a fresh login replaces it). Network errors (no connectivity)
+     * must NOT call this, so the app keeps working offline.
      */
     fun onUnauthorized() {
         consecutive401s++
