@@ -10,6 +10,7 @@ import com.neovita.server.db.tables.HabitLogsTable
 import com.neovita.server.db.tables.HealthMetricsTable
 import com.neovita.server.db.tables.PlansTable
 import com.neovita.server.db.tables.ScreensTable
+import com.neovita.server.db.tables.TeamSnapshotsTable
 import com.neovita.server.db.tables.UsersTable
 import io.ktor.server.application.*
 import org.jetbrains.exposed.sql.Database
@@ -29,7 +30,7 @@ object DatabaseFactory {
         // Nested `transaction {}` calls inside seedIfEmpty() reuse this thread's already-open
         // transaction (and therefore this exact `database`), sidestepping that race.
         transaction(database) {
-            SchemaUtils.createMissingTablesAndColumns(UsersTable, AssessmentsTable, PlansTable, ContentTable, ScreensTable, DeviceTokensTable, HealthMetricsTable, EventsTable, HabitLogsTable)
+            SchemaUtils.createMissingTablesAndColumns(UsersTable, AssessmentsTable, PlansTable, ContentTable, ScreensTable, DeviceTokensTable, HealthMetricsTable, EventsTable, HabitLogsTable, TeamSnapshotsTable)
             // Seed dashboard content on first boot so the feed is never empty.
             ContentRepository().seedIfEmpty(SEED_CONTENT)
             // Seed the SDUI screen definitions (currently just "dashboard") on first boot.

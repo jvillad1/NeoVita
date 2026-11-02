@@ -9,6 +9,7 @@ import com.neovita.server.db.repositories.HabitRepository
 import com.neovita.server.db.repositories.HealthRepository
 import com.neovita.server.db.repositories.PlanRepository
 import com.neovita.server.db.repositories.ScreenRepository
+import com.neovita.server.db.repositories.TeamSnapshotRepository
 import com.neovita.server.db.repositories.UserRepository
 import com.neovita.server.routes.*
 import com.neovita.server.services.ClaudeService
@@ -37,7 +38,8 @@ fun Application.configureRouting(
     pushService: PushService = PushService(null),
     healthRepo: HealthRepository = HealthRepository(),
     eventRepo: EventRepository = EventRepository(),
-    habitRepo: HabitRepository = HabitRepository()
+    habitRepo: HabitRepository = HabitRepository(),
+    teamSnapshotRepo: TeamSnapshotRepository = TeamSnapshotRepository()
 ) {
     routing {
         get("/health") { call.respondText("OK") }
@@ -51,7 +53,7 @@ fun Application.configureRouting(
             assessmentRoutes(assessmentRepo, planRepo)
             planRoutes(claudeService, assessmentRepo, planRepo)
             chatRoutes(claudeService)
-            b2bRoutes(userRepo, assessmentRepo)
+            b2bRoutes(userRepo, assessmentRepo, teamSnapshotRepo)
             contentRoutes(contentRepo, userRepo)
             screenRoutes(screenRepo, userRepo)
             deviceRoutes(deviceTokenRepo)

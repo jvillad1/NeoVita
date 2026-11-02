@@ -9,6 +9,8 @@ import kotlinx.serialization.Serializable
  * sensibles (Ley 1581 de 2012). Por eso la empresa sólo recibe agregados del equipo, nunca
  * nombres, correos ni puntajes por persona — y los promedios sólo cuando han respondido al
  * menos [MIN_GROUP_SIZE] personas, para que no se pueda leer el puntaje de nadie en ellos.
+ * Tampoco son en vivo: son una foto que se renueva como mucho una vez al mes y sólo si cambiaron
+ * al menos [MIN_GROUP_SIZE] personas (ver TeamSnapshotPolicy en el servidor).
  *
  * Como todos los DTO del proyecto, cada campo lleva valor por defecto para que una app ya
  * instalada siga parseando cuando el servidor añada campos.
@@ -21,6 +23,8 @@ data class TeamResponse(
     val evaluatedCount: Int = 0,
     /** Promedios del equipo; null mientras [evaluatedCount] < [minGroupSize]. */
     val averages: PillarScoresDto? = null,
+    /** Cuándo se tomó la foto de [averages] (epoch ms); null si no hay promedios. */
+    val asOf: Long? = null,
     val minGroupSize: Int = MIN_GROUP_SIZE
 ) {
     companion object {
