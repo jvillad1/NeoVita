@@ -36,6 +36,7 @@ import com.neovita.app.screens.admin.ContentAdminScreen
 import com.neovita.app.screens.assessment.AssessmentScreen
 import com.neovita.app.screens.web.WebContentScreen
 import com.neovita.app.ui.assets.profileAvatarModel
+import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.web.supportsAuthenticatedWebView
 import com.neovita.app.ui.theme.*
 import com.neovita.shared.config.RemoteConfigRepository
@@ -80,7 +81,9 @@ data class ProfileState(
     val metrics: MetricsState = MetricsState(),
     val editProfile: EditProfileState? = null,         // null = diálogo cerrado
     val resetHistoryStep: ResetHistoryStep? = null,     // null = diálogo cerrado
-    val resetHistoryError: String? = null
+    val resetHistoryError: String? = null,
+    /** Banner de confirmación tras guardar perfil o métricas. Se autodescarta sola. */
+    val confirmationMessage: String? = null
 )
 
 class ProfileViewModel(
@@ -168,7 +171,12 @@ class ProfileViewModel(
                                     glucoseMgdl = input.request.glucoseMgdl?.toLong(),
                                 )
                             } catch (_: Exception) { /* el caché es sólo respaldo sin conexión */ }
-                            _state.update { it.copy(metrics = it.metrics.copy(saving = false, saved = true)) }
+                            _state.update {
+                                it.copy(
+                                    metrics = it.metrics.copy(saving = false, saved = true),
+                                    confirmationMessage = "¡Listo! Tus métricas quedaron guardadas."
+                                )
+                            }
                         }
                         .onFailure {
                             _state.update {
@@ -210,12 +218,22 @@ class ProfileViewModel(
         _state.update { it.copy(editProfile = it.editProfile?.copy(saving = true, error = null)) }
         scope.launch {
             userRepo.updateMe(name = name, age = age)
-                .onSuccess { updated -> _state.update { it.copy(user = updated, editProfile = null) } }
+                .onSuccess { updated ->
+                    _state.update {
+                        it.copy(
+                            user = updated,
+                            editProfile = null,
+                            confirmationMessage = "¡Listo! Tu perfil quedó guardado."
+                        )
+                    }
+                }
                 .onFailure {
                     _state.update { it.copy(editProfile = it.editProfile?.copy(saving = false, error = "No se pudo guardar. Intenta de nuevo.")) }
                 }
         }
     }
+
+    fun dismissConfirmation() = _state.update { it.copy(confirmationMessage = null) }
 
     // --- Reiniciar historial de evaluaciones (autoservicio) ---
 
@@ -243,11 +261,20 @@ class ProfileScreen : Screen {
         val state by vm.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
+        LaunchedEffect(state.confirmationMessage) {
+            if (state.confirmationMessage != null) {
+                kotlinx.coroutines.delay(2500)
+                vm.dismissConfirmation()
+            }
+        }
+
+        val scrollState = rememberScrollState()
         Column(
             Modifier
                 .fillMaxSize()
                 .background(NeoDarkBg)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
+                .keyboardScrollable(scrollState)
                 .padding(24.dp)
         ) {
             Spacer(Modifier.height(8.dp))
@@ -332,35 +359,28 @@ class ProfileScreen : Screen {
 
             Spacer(Modifier.height(28.dp))
 
-            // Settings menu card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = NeoDarkSurface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column {
-                    SettingsItem(
-                        icon = "❤️",
-                        title = "Mis Datos de Salud",
-                        onClick = {}
-                    )
-                    HorizontalDivider(color = NeoDarkSurface2)
-                    SettingsItem(
-                        icon = "📱",
-                        title = "Dispositivos Conectados",
-                        onClick = {}
-                    )
-                    HorizontalDivider(color = NeoDarkSurface2)
-                    SettingsItem(
-                        icon = "🍽️",
-                        title = "Preferencias de Dieta",
-                        onClick = {}
-                    )
+            state.confirmationMessage?.let { message ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = NeoTeal500.copy(alpha = 0.15f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("✓", color = NeoTeal700, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            message,
+                            color = NeoTeal900,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
+                Spacer(Modifier.height(16.dp))
             }
-
-            Spacer(Modifier.height(16.dp))
 
             // Metrics card
             Text(

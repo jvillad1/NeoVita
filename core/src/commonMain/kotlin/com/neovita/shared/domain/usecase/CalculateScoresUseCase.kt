@@ -16,8 +16,12 @@ class CalculateScoresUseCase {
             "Todos los días" -> 100; "4-5 veces" -> 85; "2-3 veces" -> 65
             "1 vez" -> 40; else -> 10
         }
-        val exerciseTypeBonus = when (exerciseType) {
-            "Pesas o resistencia" -> 5; "Yoga o pilates" -> 3; else -> 0
+        // exerciseType puede traer varias opciones elegidas, unidas con ", ": se toma el mayor
+        // bono entre todas (no se suman, el tope de 100 ya está puesto más abajo).
+        val exerciseTypeBonus = exerciseType.split(",").maxOf { type ->
+            when (type.trim()) {
+                "Pesas o resistencia" -> 5; "Yoga o pilates" -> 3; else -> 0
+            }
         }
         val declaredExercise = (exerciseFreqScore + exerciseTypeBonus).coerceAtMost(100)
         // 10.000 pasos/día = 100; escala lineal, con el bonus por tipo de ejercicio intacto.

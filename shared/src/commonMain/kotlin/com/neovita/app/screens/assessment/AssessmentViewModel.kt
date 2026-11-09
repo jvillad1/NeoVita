@@ -15,6 +15,7 @@ data class Question(
     val id: String,
     val text: String,
     val options: List<String> = emptyList(),
+    /** "single", "slider" or "multi" — a "multi" answer is the selected options joined with ", ". */
     val type: String = "single"
 )
 
@@ -23,14 +24,14 @@ val QUESTIONS = listOf(
         listOf("Todos los días", "4-5 veces", "2-3 veces", "1 vez", "Nunca")),
     Question("exercise_type", "¿Qué tipo de ejercicio haces principalmente?",
         listOf("Cardio (caminar, correr, ciclismo)", "Pesas o resistencia", "Yoga o pilates",
-            "Deportes de equipo", "No hago ejercicio")),
+            "Deportes de equipo", "No hago ejercicio"), type = "multi"),
     Question("sleep_hours", "¿Cuántas horas duermes por noche?",
         listOf("8+ horas", "7-8 horas", "6-7 horas", "5-6 horas", "Menos de 5 horas")),
     Question("sleep_quality", "¿Cómo calificarías la calidad de tu sueño? (1-10)", type = "slider"),
     Question("main_goal", "¿Cuál es tu principal objetivo de longevidad?",
         listOf("Aumentar energía y vitalidad", "Mejorar memoria y función cognitiva",
             "Reducir riesgo de enfermedades", "Bajar de peso saludablemente",
-            "Manejar el estrés y bienestar mental"))
+            "Manejar el estrés y bienestar mental"), type = "multi")
 )
 
 data class AssessmentState(

@@ -3,6 +3,7 @@ package com.neovita.app.screens.admin
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.theme.NeoCrimson
 import com.neovita.shared.network.dto.ContentItemDto
 import com.neovita.shared.network.dto.ContentRequest
@@ -62,17 +64,21 @@ class ContentAdminScreen : Screen {
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center).padding(24.dp)
                     )
-                    else -> LazyColumn(
-                        Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(state.items, key = { it.id }) { item ->
-                            ContentRow(
-                                item = item,
-                                onEdit = { editing = item },
-                                onDelete = { vm.delete(item.id) }
-                            )
+                    else -> {
+                        val listState = rememberLazyListState()
+                        LazyColumn(
+                            Modifier.fillMaxSize().keyboardScrollable(listState),
+                            state = listState,
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(state.items, key = { it.id }) { item ->
+                                ContentRow(
+                                    item = item,
+                                    onEdit = { editing = item },
+                                    onDelete = { vm.delete(item.id) }
+                                )
+                            }
                         }
                     }
                 }
