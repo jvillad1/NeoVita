@@ -94,6 +94,54 @@ class AssessmentScreen : Screen {
                             Text("Continuar →", color = Color.White, fontWeight = FontWeight.SemiBold)
                         }
                     }
+                } else if (question.type == "multi") {
+                    // "No hago ejercicio" no convive con las demás: además de no tener sentido,
+                    // la columna exercise_type del server es varchar(100) y las cuatro opciones
+                    // reales ya casi la llenan juntas.
+                    val selected = remember(question.id) {
+                        mutableStateListOf<String>().apply {
+                            state.answers[question.id]?.split(", ")?.filter { it.isNotBlank() }?.let(::addAll)
+                        }
+                    }
+                    Column {
+                        question.options.forEach { option ->
+                            val isSelected = option in selected
+                            OutlinedButton(
+                                onClick = {
+                                    when {
+                                        option == "No hago ejercicio" -> { selected.clear(); selected.add(option) }
+                                        "No hago ejercicio" in selected -> { selected.remove("No hago ejercicio"); selected.add(option) }
+                                        isSelected -> selected.remove(option)
+                                        else -> selected.add(option)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = if (isSelected) {
+                                    ButtonDefaults.outlinedButtonColors(containerColor = NeoTeal200, contentColor = NeoTeal900)
+                                } else {
+                                    ButtonDefaults.outlinedButtonColors(contentColor = NeoNavy)
+                                }
+                            ) {
+                                Text((if (isSelected) "✓ " else "") + option, modifier = Modifier.padding(vertical = 4.dp))
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Puedes elegir varias opciones",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { vm.answer(question.id, selected.joinToString(", ")) },
+                            enabled = selected.isNotEmpty(),
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = NeoTeal700)
+                        ) {
+                            Text("Continuar →", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 } else {
                     question.options.forEach { option ->
                         OutlinedButton(

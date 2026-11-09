@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neovita.app.screens.dashboard.ContentItem
 import com.neovita.app.ui.components.ScoreRing
+import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.theme.*
 import com.neovita.shared.domain.model.PillarScores
 import com.neovita.shared.network.dto.CardDto
@@ -45,8 +47,10 @@ fun SduiRenderer(
     onOpenWebView: (String, String) -> Unit,
 ) {
     Box(Modifier.fillMaxSize().background(NeoDarkBg)) {
+        val listState = rememberLazyListState()
         LazyColumn(
-            Modifier.fillMaxSize(),
+            Modifier.fillMaxSize().keyboardScrollable(listState),
+            state = listState,
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             renderableSections(definition).forEach { section ->

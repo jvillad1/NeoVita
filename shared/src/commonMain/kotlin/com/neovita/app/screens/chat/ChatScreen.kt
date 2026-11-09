@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import org.koin.compose.koinInject
 import com.neovita.app.ui.components.ErrorBanner
+import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.text.chatMarkdown
 import com.neovita.app.ui.theme.*
 import com.neovita.shared.domain.model.MessageRole
@@ -63,7 +64,7 @@ class ChatScreen : Screen {
             // Messages
             LazyColumn(
                 state = listState,
-                modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 16.dp).keyboardScrollable(listState),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {

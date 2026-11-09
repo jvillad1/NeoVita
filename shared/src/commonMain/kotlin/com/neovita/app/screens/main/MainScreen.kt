@@ -126,8 +126,11 @@ private fun NeoBottomBar() {
 private fun RowScope.NeoTabItem(item: NavItem, tabNavigator: TabNavigator) {
     val selected = tabNavigator.current == item.tab
 
+    // Antes el estado sin seleccionar usaba un gris casi blanco (0xFFBBBBBB) que, sobre el
+    // fondo blanco de la barra, se veía deshabilitado en vez de simplemente "no activo".
+    // NeoTextSecondary es el mismo gris que ya usa el resto de la app para texto secundario.
     val iconTint by animateColorAsState(
-        targetValue = if (selected) NeoCrimson else Color(0xFFBBBBBB),
+        targetValue = if (selected) NeoCrimson else NeoTextSecondary,
         animationSpec = tween(200),
         label = "iconTint"
     )

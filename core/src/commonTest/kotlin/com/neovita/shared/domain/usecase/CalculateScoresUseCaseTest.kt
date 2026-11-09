@@ -63,6 +63,12 @@ class CalculateScoresUseCaseTest {
         assertEquals(declared.sleep, stepsOnly.sleep)   // sueño sin medir → cuestionario
     }
 
+    @Test fun `multi-select exercise type takes the best bonus among the chosen ones`() {
+        val joined = useCase("2-3 veces", "Cardio, Pesas o resistencia, Yoga o pilates", "6-8 horas", 6)
+        val pesasOnly = useCase("2-3 veces", "Pesas o resistencia", "6-8 horas", 6)
+        assertEquals(pesasOnly.exercise, joined.exercise)
+    }
+
     @Test fun `overall stays the average of the three pillars with health data`() {
         val s = useCase("2-3 veces", "Cardio", "6-8 horas", 6,
             HealthSummary(avgDailySteps = 8000, avgSleepMinutes = 430))

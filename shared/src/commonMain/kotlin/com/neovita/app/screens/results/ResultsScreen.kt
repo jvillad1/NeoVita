@@ -18,6 +18,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.neovita.app.screens.main.MainScreen
 import com.neovita.app.ui.components.NeoProgressBar
 import com.neovita.app.ui.components.ScoreRing
+import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.theme.*
 
 class ResultsScreen : Screen {
@@ -26,9 +27,10 @@ class ResultsScreen : Screen {
         val state by vm.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
 
+        val scrollState = rememberScrollState()
         Column(
             Modifier.fillMaxSize().background(NeoBg)
-                .verticalScroll(rememberScrollState()).padding(24.dp),
+                .verticalScroll(scrollState).keyboardScrollable(scrollState).padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(

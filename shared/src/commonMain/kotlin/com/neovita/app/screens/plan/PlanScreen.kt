@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import org.koin.compose.koinInject
 import com.neovita.app.ui.components.ErrorBanner
+import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.theme.*
 
 private data class PlanSectionTheme(val gradient: List<Color>)
@@ -46,8 +48,10 @@ class PlanScreen : Screen {
                 .fillMaxSize()
                 .background(NeoDarkBg)
         ) {
+            val listState = rememberLazyListState()
             LazyColumn(
-                Modifier.fillMaxSize(),
+                Modifier.fillMaxSize().keyboardScrollable(listState),
+                state = listState,
                 contentPadding = PaddingValues(bottom = 88.dp)
             ) {
                 // Header

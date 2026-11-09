@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -37,6 +38,7 @@ import com.neovita.app.navigation.tabs.PlanTab
 import com.neovita.app.navigation.tabs.ProfileTab
 import com.neovita.app.screens.web.WebContentScreen
 import com.neovita.app.ui.components.ScoreRing
+import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.sdui.SduiRenderer
 import com.neovita.app.ui.theme.*
 
@@ -232,8 +234,10 @@ private fun DashboardFallback(state: DashboardState, onToggleHabit: (String) -> 
     Box(Modifier.fillMaxSize().background(NeoDarkBg)) {
         DotPatternOverlay()
 
+            val listState = rememberLazyListState()
             LazyColumn(
-                Modifier.fillMaxSize(),
+                Modifier.fillMaxSize().keyboardScrollable(listState),
+                state = listState,
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
 
