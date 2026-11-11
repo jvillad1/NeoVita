@@ -45,6 +45,8 @@ fun SduiRenderer(
     onNavigateTab: (String) -> Unit,
     onOpenUrl: (String) -> Unit,
     onOpenWebView: (String, String) -> Unit,
+    /** Primer elemento de la lista: se desplaza con el contenido en vez de quedarse fijo arriba. */
+    header: (@Composable () -> Unit)? = null,
 ) {
     Box(Modifier.fillMaxSize().background(NeoDarkBg)) {
         val listState = rememberLazyListState()
@@ -53,6 +55,7 @@ fun SduiRenderer(
             state = listState,
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
+            if (header != null) item(key = "header") { header() }
             renderableSections(definition).forEach { section ->
                 item {
                     SduiSection(

@@ -41,6 +41,7 @@ import com.neovita.app.ui.components.ScoreRing
 import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.sdui.SduiRenderer
 import com.neovita.app.ui.theme.*
+import com.neovita.app.ui.valle.ValleEncabezado
 
 // ── Experience card data ──────────────────────────────────────────────────────
 
@@ -159,63 +160,34 @@ class DashboardScreen : Screen {
 
         val screenDef = state.screenDef
         if (screenDef != null) {
-            Column(Modifier.fillMaxSize().background(NeoDarkBg)) {
-                SduiGreetingHeader(state.user?.name)
-                Box(Modifier.weight(1f)) {
-                    SduiRenderer(
-                        definition = screenDef,
-                        scores = state.plan?.scores,
-                        feed = state.feed,
-                        onNavigateTab = { target ->
-                            tabNavigator.current = when (target) {
-                                "home" -> HomeTab
-                                "chat" -> ChatTab
-                                "plan" -> PlanTab
-                                "profile" -> ProfileTab
-                                else -> tabNavigator.current
-                            }
-                        },
-                        onOpenUrl = { url -> uriHandler.openUri(url) },
-                        onOpenWebView = { title, url ->
-                            navigator.parent?.push(WebContentScreen(title, url))
-                        },
+            SduiRenderer(
+                definition = screenDef,
+                scores = state.plan?.scores,
+                feed = state.feed,
+                onNavigateTab = { target ->
+                    tabNavigator.current = when (target) {
+                        "home" -> HomeTab
+                        "chat" -> ChatTab
+                        "plan" -> PlanTab
+                        "profile" -> ProfileTab
+                        else -> tabNavigator.current
+                    }
+                },
+                onOpenUrl = { url -> uriHandler.openUri(url) },
+                onOpenWebView = { title, url ->
+                    navigator.parent?.push(WebContentScreen(title, url))
+                },
+                // El encabezado va dentro de la lista: se desplaza con el contenido. Los
+                // guayacanes florecen cuando hay al menos un hábito registrado hoy.
+                header = {
+                    ValleEncabezado(
+                        state.user?.name,
+                        florecido = state.habits.loggedHabitIds.isNotEmpty(),
                     )
-                }
-            }
+                },
+            )
         } else {
             DashboardFallback(state, onToggleHabit = vm::toggleHabit)
-        }
-    }
-}
-
-// ── Greeting header for the SDUI path — NOT shared with DashboardFallback (that
-//    composable is the insurance policy and stays untouched). Same visual reference
-//    (text, typography, spacing, entrance animation) as DashboardFallback's greeting
-//    block, reimplemented locally so the SDUI branch keeps its own chrome. ───────────
-
-@Composable
-private fun SduiGreetingHeader(nombre: String?) {
-    var show by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { show = true }
-
-    AnimatedVisibility(
-        visible = show,
-        enter = fadeIn(tween(350)) + slideInVertically(tween(350)) { it / 3 }
-    ) {
-        Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 28.dp, bottom = 6.dp)) {
-            Text(
-                saludoDashboard(nombre),
-                color = NeoTextPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 32.sp,
-                lineHeight = 36.sp
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Tu viaje hacia la longevidad comienza hoy.",
-                color = NeoTextSecondary,
-                fontSize = 14.sp
-            )
         }
     }
 }
@@ -241,27 +213,14 @@ private fun DashboardFallback(state: DashboardState, onToggleHabit: (String) -> 
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
 
-                // ── Greeting ─────────────────────────────────────────────────
+                // ── Greeting: el valle del momento del día. Los guayacanes florecen
+                //    cuando hay al menos un hábito registrado hoy. ───────────────────
                 item {
-                    AnimatedVisibility(
-                        visible = show,
-                        enter = fadeIn(tween(350)) + slideInVertically(tween(350)) { it / 3 }
-                    ) {
-                        Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 28.dp, bottom = 6.dp)) {
-                            Text(
-                                saludoDashboard(state.user?.name),
-                                color = NeoTextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 32.sp,
-                                lineHeight = 36.sp
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Tu viaje hacia la longevidad comienza hoy.",
-                                color = NeoTextSecondary,
-                                fontSize = 14.sp
-                            )
-                        }
+                    AnimatedVisibility(visible = show, enter = fadeIn(tween(350))) {
+                        ValleEncabezado(
+                            state.user?.name,
+                            florecido = state.habits.loggedHabitIds.isNotEmpty(),
+                        )
                     }
                 }
 

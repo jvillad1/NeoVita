@@ -78,7 +78,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run unit tests
-        run: ./gradlew :server:test :core:testDebugUnitTest
+        run: ./gradlew :server:test :core:testDebugUnitTest :shared:testDebugUnitTest
 
       - name: Upload test results
         if: always()
