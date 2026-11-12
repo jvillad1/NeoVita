@@ -73,6 +73,21 @@ class HabitRoutesTest {
     }
 
     @Test
+    fun `accepts the 20-minute walk from the Vivo home screen`() = testApplication {
+        // Inicio (Valle Vivo) tiene un botón grande "Hoy: camina 20 minutos": más alcanzable a
+        // los 55+ que los 10K pasos, y por eso es un hábito propio, no un alias de walk_10k.
+        environment { config = testConfig("habits_walk20") }
+        application { module() }
+        val token = jwtService.generateToken("user-1", "USER")
+
+        val response = client.post("/api/habits/walk_20min/toggle") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(response.bodyAsText().contains("walk_20min"))
+    }
+
+    @Test
     fun `rejects an unknown habit id`() = testApplication {
         environment { config = testConfig("habits_invalid") }
         application { module() }
