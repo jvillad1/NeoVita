@@ -78,8 +78,19 @@ fun Modifier.valleEscena(
     florecido: Boolean = false,
     animar: Boolean = true,
     alturaEscena: Dp? = null,
+    /**
+     * Tu cabina, la amarilla: null no la dibuja; false la deja a mitad de cable y true la hace
+     * subir hasta la estación (en Vivo, al hacer la caminata del día).
+     */
+    cabinaLlega: Boolean? = null,
 ): Modifier {
     val p = paletaValle(momento)
+    val cabina by animateFloatAsState(
+        targetValue = if (cabinaLlega == true) .78f else .42f,
+        animationSpec = tween(2400, easing = FastOutSlowInEasing),
+        label = "cabinaPropia",
+    )
+    val conCabina = cabinaLlega != null
     val flor by animateFloatAsState(
         targetValue = if (florecido) 1f else 0f,
         animationSpec = tween(1600, easing = FastOutSlowInEasing),
@@ -100,7 +111,7 @@ fun Modifier.valleEscena(
             clipRect {
                 scale(d, pivot = Offset.Zero) {
                     drawRect(p.cielo.first(), size = Size(w, cielo + 1f))
-                    translate(0f, cielo) { dibujar(g, p, reloj, flor) }
+                    translate(0f, cielo) { dibujar(g, p, reloj, flor, if (conCabina) cabina else null) }
                 }
             }
         }
@@ -294,7 +305,7 @@ private fun Random.between(a: Float, b: Float) = a + nextFloat() * (b - a)
 private val Linea = Color(0xFF1A1230)
 private val LuzVentana = Color(0xFFFFD98A)
 
-private fun DrawScope.dibujar(g: Geometria, p: VallePaleta, t: RelojEscena, flor: Float) {
+private fun DrawScope.dibujar(g: Geometria, p: VallePaleta, t: RelojEscena, flor: Float, cabinaPropia: Float?) {
     val w = g.w; val h = g.h
 
     // Cielo
@@ -383,6 +394,11 @@ private fun DrawScope.dibujar(g: Geometria, p: VallePaleta, t: RelojEscena, flor
     listOf(0f, .5f).forEach { desfase ->
         val o = enCable((t.cabinas.value + desfase) % 1f)
         translate(o.x, o.y) { cabina(Color(0xFFFFF3E4)) }
+    }
+    cabinaPropia?.let { f ->
+        val o = enCable(f)
+        drawCircle(Color(0xFFFFD27A), 26f, Offset(o.x, o.y + 14f), alpha = .35f)
+        translate(o.x, o.y) { cabina(Color(0xFFFFC23C)) }
     }
 
     // Guayacanes

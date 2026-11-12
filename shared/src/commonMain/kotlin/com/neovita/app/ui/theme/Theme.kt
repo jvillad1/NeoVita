@@ -6,6 +6,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import com.neovita.app.ui.valle.LocalTitulares
+import com.neovita.app.ui.valle.cargarTitulares
 
 @Composable
 fun NeoVitaTheme(content: @Composable () -> Unit) {
@@ -24,6 +26,7 @@ fun NeoVitaTheme(content: @Composable () -> Unit) {
         // fontSize) inherit the emoji-capable family and render correctly on web.
         CompositionLocalProvider(
             LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = fontFamily),
+            LocalTitulares provides cargarTitulares(),
             content = content
         )
     }

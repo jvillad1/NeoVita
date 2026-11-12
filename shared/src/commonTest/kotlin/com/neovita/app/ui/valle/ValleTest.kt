@@ -68,6 +68,7 @@ class VallePaletaContrasteTest {
             assertContraste(4.5, p.tinta, p.tarjeta, "$m tinta/tarjeta")
             assertContraste(4.5, p.tintaSuave, p.tarjeta, "$m tintaSuave/tarjeta")
             assertContraste(4.5, p.tintaAccion, p.accion, "$m botón")
+            assertContraste(4.5, androidx.compose.ui.graphics.Color.White, VerdeHecho, "$m botón hecho")
             // El saludo va en blanco sobre la parte alta del cielo.
             assertContraste(4.5, androidx.compose.ui.graphics.Color.White, p.cielo.first(), "$m saludo/cielo")
         }

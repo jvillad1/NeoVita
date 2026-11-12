@@ -96,6 +96,9 @@ private val Noche = Atardecer.copy(
     accion = Color(0xFFFFD27A), tintaAccion = Color(0xFF1A1433),
 )
 
+/** Fondo del botón de la caminata ya hecha, igual en los cuatro momentos (texto blanco encima). */
+val VerdeHecho = Color(0xFF1E7A53)
+
 fun paletaValle(momento: MomentoDelDia): VallePaleta = when (momento) {
     MomentoDelDia.Amanecer -> Amanecer
     MomentoDelDia.Mediodia -> Mediodia

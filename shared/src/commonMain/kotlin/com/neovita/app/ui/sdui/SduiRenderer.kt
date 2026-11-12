@@ -47,6 +47,8 @@ fun SduiRenderer(
     onOpenWebView: (String, String) -> Unit,
     /** Primer elemento de la lista: se desplaza con el contenido en vez de quedarse fijo arriba. */
     header: (@Composable () -> Unit)? = null,
+    /** Tipos de sección que no se pintan porque el [header] ya los cubre (p. ej. HERO_SCORE). */
+    omitir: Set<String> = emptySet(),
 ) {
     Box(Modifier.fillMaxSize().background(NeoDarkBg)) {
         val listState = rememberLazyListState()
@@ -56,7 +58,7 @@ fun SduiRenderer(
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             if (header != null) item(key = "header") { header() }
-            renderableSections(definition).forEach { section ->
+            renderableSections(definition).filter { it.type !in omitir }.forEach { section ->
                 item {
                     SduiSection(
                         section = section,

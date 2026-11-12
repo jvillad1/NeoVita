@@ -32,12 +32,17 @@ fun momentoDelDia(hora: Int): MomentoDelDia {
  * todavía son "buenos días"). Sin nombre se saluda a secas.
  */
 fun saludoValle(hora: Int, nombreCompleto: String?): String {
+    val saludo = saludoDeLaHora(hora)
+    val nombre = primerNombre(nombreCompleto)
+    return if (nombre == null) saludo else "$saludo, $nombre"
+}
+
+/** "Buenos días" / "Buenas tardes" / "Buenas noches" según el reloj. */
+fun saludoDeLaHora(hora: Int): String {
     require(hora in 0..23) { "hora fuera de rango: $hora" }
-    val saludo = when (hora) {
+    return when (hora) {
         in 5..11 -> "Buenos días"
         in 12..18 -> "Buenas tardes"
         else -> "Buenas noches"
     }
-    val nombre = primerNombre(nombreCompleto)
-    return if (nombre == null) saludo else "$saludo, $nombre"
 }

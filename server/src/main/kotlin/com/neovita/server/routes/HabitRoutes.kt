@@ -12,7 +12,7 @@ import java.time.LocalDate
 // Ids fijos en el cliente (las 5 tarjetas de "Hábitos de Zonas Azules"), no datos del
 // servidor: una entrada con un habitId que ya no existe en el cliente simplemente deja de
 // mostrarse — no hay FK que mantener ni migración que correr si la lista cambia.
-private val VALID_HABIT_IDS = setOf("meditation", "plant_based_diet", "walk_10k", "sleep_8h", "social_bonds")
+private val VALID_HABIT_IDS = setOf("meditation", "plant_based_diet", "walk_10k", "sleep_8h", "social_bonds", "walk_20min")
 
 fun Route.habitRoutes(repo: HabitRepository, eventRepo: EventRepository) {
     authenticate("jwt-auth") {

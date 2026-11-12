@@ -37,11 +37,11 @@ import com.neovita.app.navigation.tabs.HomeTab
 import com.neovita.app.navigation.tabs.PlanTab
 import com.neovita.app.navigation.tabs.ProfileTab
 import com.neovita.app.screens.web.WebContentScreen
-import com.neovita.app.ui.components.ScoreRing
 import com.neovita.app.ui.components.keyboardScrollable
 import com.neovita.app.ui.sdui.SduiRenderer
 import com.neovita.app.ui.theme.*
-import com.neovita.app.ui.valle.ValleEncabezado
+import com.neovita.app.ui.valle.HABITO_CAMINATA
+import com.neovita.app.ui.valle.VivoCabecera
 
 // ── Experience card data ──────────────────────────────────────────────────────
 
@@ -177,19 +177,30 @@ class DashboardScreen : Screen {
                 onOpenWebView = { title, url ->
                     navigator.parent?.push(WebContentScreen(title, url))
                 },
-                // El encabezado va dentro de la lista: se desplaza con el contenido. Los
-                // guayacanes florecen cuando hay al menos un hábito registrado hoy.
-                header = {
-                    ValleEncabezado(
-                        state.user?.name,
-                        florecido = state.habits.loggedHabitIds.isNotEmpty(),
-                    )
-                },
+                // Valle Vivo va dentro de la lista: se desplaza con el contenido. Ya trae el
+                // puntaje, así que HERO_SCORE del servidor saldría repetido.
+                header = { Vivo(state, onToggleHabit = vm::toggleHabit, onCoach = { tabNavigator.current = ChatTab }) },
+                omitir = setOf("HERO_SCORE"),
             )
         } else {
-            DashboardFallback(state, onToggleHabit = vm::toggleHabit)
+            DashboardFallback(state, onToggleHabit = vm::toggleHabit, onCoach = { tabNavigator.current = ChatTab })
         }
     }
+}
+
+@Composable
+private fun Vivo(state: DashboardState, onToggleHabit: (String) -> Unit, onCoach: () -> Unit) {
+    val hechos = state.habits.loggedHabitIds
+    VivoCabecera(
+        nombre = state.user?.name,
+        puntajes = state.plan?.scores,
+        diasSeguidos = state.habits.streak,
+        caminataHecha = HABITO_CAMINATA in hechos,
+        actualizandoCaminata = HABITO_CAMINATA in state.habitsUpdating,
+        florecido = hechos.isNotEmpty(),
+        onCaminata = { onToggleHabit(HABITO_CAMINATA) },
+        onCoach = onCoach,
+    )
 }
 
 // ── Fallback — the ORIGINAL screen body, renamed verbatim. This is the insurance
@@ -198,7 +209,7 @@ class DashboardScreen : Screen {
 //    SDUI composables (SduiCard/SduiRenderer) with it. ─────────────────────────────
 
 @Composable
-private fun DashboardFallback(state: DashboardState, onToggleHabit: (String) -> Unit) {
+private fun DashboardFallback(state: DashboardState, onToggleHabit: (String) -> Unit, onCoach: () -> Unit) {
     var show by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { show = true }
 
@@ -213,24 +224,10 @@ private fun DashboardFallback(state: DashboardState, onToggleHabit: (String) -> 
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
 
-                // ── Greeting: el valle del momento del día. Los guayacanes florecen
-                //    cuando hay al menos un hábito registrado hoy. ───────────────────
+                // ── Valle Vivo: saludo, puntaje, caminata, Coach y constancia ─────
                 item {
                     AnimatedVisibility(visible = show, enter = fadeIn(tween(350))) {
-                        ValleEncabezado(
-                            state.user?.name,
-                            florecido = state.habits.loggedHabitIds.isNotEmpty(),
-                        )
-                    }
-                }
-
-                // ── Score card ───────────────────────────────────────────────
-                item {
-                    AnimatedVisibility(
-                        visible = show,
-                        enter = fadeIn(tween(450, delayMillis = 100)) + slideInVertically(tween(450, delayMillis = 100)) { it / 3 }
-                    ) {
-                        ScoreCard(state, Modifier.padding(horizontal = 22.dp, vertical = 14.dp))
+                        Vivo(state, onToggleHabit, onCoach)
                     }
                 }
 
@@ -435,87 +432,6 @@ private fun DotPatternOverlay() {
                 )
             }
         }
-    }
-}
-
-// ── Score card ────────────────────────────────────────────────────────────────
-
-@Composable
-private fun ScoreCard(state: DashboardState, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        val overall  = state.plan?.scores?.overall   ?: 85
-        val nutricion = state.plan?.scores?.nutrition ?: 88
-        val actividad = state.plan?.scores?.exercise  ?: 82
-        val sueno    = state.plan?.scores?.sleep      ?: 85
-        val bienestar = 84
-
-        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 20.dp)) {
-
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Longevity Score", color = NeoTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                Text("❤️", fontSize = 18.sp)
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                ScoreRing(score = overall, size = 120.dp, textColor = NeoCrimson)
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            Text(
-                "Tu puntuación esta semana",
-                color = NeoTextMuted,
-                fontSize = 12.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(Modifier.fillMaxWidth()) {
-                PillarStat("Nutrición", nutricion, NeoCrimson, Modifier.weight(1f))
-                PillarStat("Actividad", actividad, NeoCrimson, Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(6.dp))
-            Row(Modifier.fillMaxWidth()) {
-                PillarStat("Sueño", sueno, NeoTextSecondary, Modifier.weight(1f))
-                PillarStat("Bienestar", bienestar, NeoTextSecondary, Modifier.weight(1f))
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("Ver detalles", color = NeoCrimson, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            }
-        }
-    }
-}
-
-@Composable
-private fun PillarStat(label: String, score: Int, dotColor: Color, modifier: Modifier = Modifier) {
-    Row(
-        modifier.padding(vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            Modifier.size(7.dp).clip(CircleShape).background(dotColor)
-        )
-        Spacer(Modifier.width(5.dp))
-        Text(
-            "$label: $score%",
-            color = NeoTextMuted,
-            fontSize = 11.sp
-        )
     }
 }
 
